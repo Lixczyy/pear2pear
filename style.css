@@ -1,0 +1,70 @@
+body {
+  background-color: #250064;
+}
+
+h1,h2,h3,p,small {
+  color: white;
+
+}
+
+.invlink {
+  text-decoration: none;
+}
+
+.dropdown {
+  position: fixed;
+    right: 20px;
+    top: 20px;
+}
+
+/* Style the dropdown button */
+.dropbtn {
+  background-color: #250064;
+  color: white;
+  padding: 16px;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+}
+
+/* Scale SVG icon inside button and inherit color */
+.dropbtn .icon {
+  width: 1.25rem;
+  height: auto;
+  display: inline-block;
+  vertical-align: middle;
+  fill: currentColor;
+}
+
+/* Dropdown content */
+.dropdown-content {
+  display: none;
+  position: absolute;
+  right: 0;
+  background-color: #250064;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+}
+
+/* Links inside dropdown content */
+.dropdown-content a {
+  color: white;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  text-align: right;
+}
+
+/* Change color of dropdown links on hover */
+.dropdown-content a:hover {
+  background-color: #1b003f;
+}
+
+/* Show the dropdown content on hover */
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+/* Change background color of dropdown button on hover */
+.dropdown:hover .dropbtn {
+  background-color: #000000;
+}
