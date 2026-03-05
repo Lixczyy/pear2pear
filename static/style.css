@@ -1,23 +1,47 @@
-body {
+main {
   background-color: #250064;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 95vh;
+  margin: 0;
+}
+
+html, body {
+  overflow: hidden;
+  height: 100%;
+  margin: 0;
+  background-color: #250064;
+}
+
+.box {
+  width: 60%;
+  height: 400px;
+  padding: 20px;
+  border-radius: 12px;
+  background-color: #490064;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin: 0 auto;
 }
 
 h1,h2,h3,p,small {
   color: white;
-
+  position: center;
 }
 
 .invlink {
   text-decoration: none;
 }
 
+
+
+/* dropdown button css*/
+
 .dropdown {
   position: fixed;
     right: 20px;
     top: 20px;
 }
-
-/* Style the dropdown button */
 .dropbtn {
   background-color: #250064;
   color: white;
@@ -26,8 +50,6 @@ h1,h2,h3,p,small {
   border: none;
   cursor: pointer;
 }
-
-/* Scale SVG icon inside button and inherit color */
 .dropbtn .icon {
   width: 1.25rem;
   height: auto;
@@ -35,8 +57,6 @@ h1,h2,h3,p,small {
   vertical-align: middle;
   fill: currentColor;
 }
-
-/* Dropdown content */
 .dropdown-content {
   display: none;
   position: absolute;
@@ -44,8 +64,6 @@ h1,h2,h3,p,small {
   background-color: #250064;
   box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
 }
-
-/* Links inside dropdown content */
 .dropdown-content a {
   color: white;
   padding: 12px 16px;
@@ -53,18 +71,12 @@ h1,h2,h3,p,small {
   display: block;
   text-align: right;
 }
-
-/* Change color of dropdown links on hover */
 .dropdown-content a:hover {
   background-color: #1b003f;
 }
-
-/* Show the dropdown content on hover */
 .dropdown:hover .dropdown-content {
   display: block;
 }
-
-/* Change background color of dropdown button on hover */
 .dropdown:hover .dropbtn {
   background-color: #000000;
 }
