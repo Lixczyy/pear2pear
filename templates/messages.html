@@ -5,6 +5,12 @@
 <div class="messages-page">
     <h2 class="profiles-title">Berichten</h2>
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <p class="flash flash-{{ category }}">{{ message }}</p>
+        {% endfor %}
+    {% endwith %}
+
     {% if conversations %}
     <div class="conversation-list">
         {% for conv in conversations %}

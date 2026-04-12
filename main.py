@@ -41,7 +41,9 @@ def create_app() -> Flask:
     return app
 
 
-# Forms :)
+
+# Forms
+
 
 class LoginForm(FlaskForm):
     username = StringField("Gebruikersnaam", validators=[DataRequired()])
@@ -94,7 +96,8 @@ class MessageForm(FlaskForm):
     submit = SubmitField("Versturen")
 
 
-# hier staan de routes :)
+# Routes
+
 
 def register_routes(app: Flask) -> None:
 
@@ -102,7 +105,7 @@ def register_routes(app: Flask) -> None:
     def index():
         return render_template("index.html")
 
-    # authenticate :)
+    # Auth 
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
@@ -140,7 +143,7 @@ def register_routes(app: Flask) -> None:
         logout_user()
         return render_template("logout.html")
 
-    # account pagina :)
+    #  Account 
 
     @app.route("/account", methods=["GET", "POST"])
     @login_required
@@ -166,7 +169,7 @@ def register_routes(app: Flask) -> None:
             return redirect(url_for("account"))
         return render_template("account.html", user=current_user, form=form)
 
-    # profiles pagina :)
+    #  Profiles grid 
 
     @app.route("/profiles")
     @login_required
@@ -174,7 +177,7 @@ def register_routes(app: Flask) -> None:
         all_users = User.query.order_by(User.username).all()
         return render_template("profiles.html", users=all_users)
 
-    # eigen profiel pagina :)
+    #profile 
 
     @app.route("/profile/<int:user_id>")
     @login_required
@@ -183,10 +186,9 @@ def register_routes(app: Flask) -> None:
         if user.id == current_user.id:
             return redirect(url_for("account"))
         status = current_user.friendship_status_with(user.id)
-        msg_form = MessageForm()
-        return render_template("profile.html", user=user, status=status, msg_form=msg_form)
+        return render_template("profile.html", user=user, status=status)
 
-    # friendship routes :)
+    # frndship actions
 
     @app.route("/friend/add/<int:user_id>", methods=["POST"])
     @login_required
@@ -197,25 +199,25 @@ def register_routes(app: Flask) -> None:
         if not existing:
             db.session.add(Friendship(from_id=current_user.id, to_id=user_id))
             db.session.commit()
-            flash("Vriendschapsverzoek verzonden!", "success")
+        # Redirect back
         return redirect(request.referrer or url_for("profiles"))
 
     @app.route("/friend/accept/<int:user_id>", methods=["POST"])
     @login_required
     def friend_accept(user_id):
-        req = Friendship.query.filter_by(from_id=user_id, to_id=current_user.id, status="pending").first_or_404()
-        req.status = "accepted"
-        db.session.commit()
-        flash("Vriendschapsverzoek geaccepteerd!", "success")
+        req = Friendship.query.filter_by(from_id=user_id, to_id=current_user.id, status="pending").first()
+        if req:
+            req.status = "accepted"
+            db.session.commit()
         return redirect(request.referrer or url_for("friends"))
 
     @app.route("/friend/decline/<int:user_id>", methods=["POST"])
     @login_required
     def friend_decline(user_id):
-        req = Friendship.query.filter_by(from_id=user_id, to_id=current_user.id, status="pending").first_or_404()
-        db.session.delete(req)
-        db.session.commit()
-        flash("Verzoek geweigerd.", "info")
+        req = Friendship.query.filter_by(from_id=user_id, to_id=current_user.id, status="pending").first()
+        if req:
+            db.session.delete(req)
+            db.session.commit()
         return redirect(request.referrer or url_for("friends"))
 
     @app.route("/friend/remove/<int:user_id>", methods=["POST"])
@@ -230,7 +232,7 @@ def register_routes(app: Flask) -> None:
             db.session.commit()
         return redirect(request.referrer or url_for("friends"))
 
-    # friends pagina :)
+    # friends
 
     @app.route("/friends")
     @login_required
@@ -239,7 +241,7 @@ def register_routes(app: Flask) -> None:
         pending     = current_user.pending_received()
         return render_template("friends.html", friends=friend_list, pending=pending)
 
-    # messages pagina :)
+    # msgs
 
     @app.route("/messages")
     @login_required
@@ -275,7 +277,7 @@ def register_routes(app: Flask) -> None:
             db.session.commit()
             return redirect(url_for("conversation", partner_id=partner_id))
 
-        # Mark received messages as read
+        # read/recieved
         Message.query.filter_by(sender_id=partner_id, receiver_id=current_user.id, read=False).update({"read": True})
         db.session.commit()
 
@@ -289,16 +291,15 @@ def register_routes(app: Flask) -> None:
     @app.route("/messages/send/<int:user_id>", methods=["POST"])
     @login_required
     def send_message_from_profile(user_id):
-        form = MessageForm()
-        if form.validate_on_submit():
-            msg = Message(sender_id=current_user.id, receiver_id=user_id, body=form.body.data)
+        body = request.form.get("body", "").strip()
+        if body:
+            msg = Message(sender_id=current_user.id, receiver_id=user_id, body=body)
             db.session.add(msg)
             db.session.commit()
-            flash("Bericht verzonden!", "success")
         return redirect(url_for("conversation", partner_id=user_id))
 
 
 app = create_app()
-# debug nog uitzetten :)
+
 if __name__ == "__main__":
     app.run(debug=True)

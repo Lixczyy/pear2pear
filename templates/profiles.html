@@ -27,10 +27,16 @@
                     {% elif status == 'pending_sent' %}
                         <span class="friend-badge friend-badge--pending">⏳ Verzonden</span>
                     {% elif status == 'pending_received' %}
-                        <form method="POST" action="/friend/accept/{{ user.id }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                            <button type="submit" class="btn btn--small btn--green">✓ Accepteren</button>
-                        </form>
+                        <div style="display:flex;gap:6px;justify-content:center;">
+                            <form method="POST" action="/friend/accept/{{ user.id }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn--small btn--green">✓</button>
+                            </form>
+                            <form method="POST" action="/friend/decline/{{ user.id }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn--small btn--outline">✕</button>
+                            </form>
+                        </div>
                     {% else %}
                         <form method="POST" action="/friend/add/{{ user.id }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
