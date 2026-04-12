@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Berichten{% endblock %}
+
+{% block content %}
+<div class="messages-page">
+    <h2 class="profiles-title">Berichten</h2>
+
+    {% if conversations %}
+    <div class="conversation-list">
+        {% for conv in conversations %}
+        <a href="/messages/{{ conv.user.id }}" class="conversation-item {% if conv.unread > 0 %}conversation-item--unread{% endif %}">
+            <div class="conversation-item__avatar">{{ conv.user.username[0].upper() }}</div>
+            <div class="conversation-item__body">
+                <span class="conversation-item__name">{{ conv.user.username }}</span>
+                <span class="conversation-item__preview">
+                    {% if conv.latest.sender_id == current_user.id %}Jij: {% endif %}
+                    {{ conv.latest.body[:60] }}{% if conv.latest.body|length > 60 %}…{% endif %}
+                </span>
+            </div>
+            {% if conv.unread > 0 %}
+            <span class="nav-badge" style="position:relative;top:0;right:0;flex-shrink:0;">{{ conv.unread }}</span>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+        <p class="muted-center">Nog geen berichten. Klik op een profiel om iemand te beichten!</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,23 +1,19 @@
 {% extends "base.html" %}
-
-{% block title %}Logout{% endblock %}
-
+{% block title %}Uitloggen{% endblock %}
 {% block content %}
-	<meta http-equiv="refresh" content="3;url=/" />
+    <meta http-equiv="refresh" content="3;url=/" />
     <div class="logout-box">
-				<div class="center">
-					<p>You have been logged out!</p>
-					<p>You will be redirected to the homepage in <span id="countdown">3</span> seconds.</p>
-						<script>
-							var seconds = 3;
-							var countdown = setInterval(function() {
-								seconds--;
-								document.getElementById('countdown').textContent = seconds;
-								if (seconds <= 0) {
-								clearInterval(countdown);
-								}
-							}, 1000);
-						</script>
-				</div> 
-			</div>
+        <div class="center">
+            <p>Je bent uitgelogd!</p>
+            <p>Je wordt over <span id="countdown">3</span> seconden doorgestuurd.</p>
+            <script>
+                var seconds = 3;
+                var countdown = setInterval(function() {
+                    seconds--;
+                    document.getElementById('countdown').textContent = seconds;
+                    if (seconds <= 0) clearInterval(countdown);
+                }, 1000);
+            </script>
+        </div>
+    </div>
 {% endblock %}

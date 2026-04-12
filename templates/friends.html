@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Vrienden{% endblock %}
+
+{% block content %}
+<div class="friends-page">
+
+    {% if pending %}
+    <div class="friends-section">
+        <h3 class="section-title">Vriendschapsverzoeken <span class="nav-badge" style="position:relative;top:0;right:0;">{{ pending|length }}</span></h3>
+        <div class="friends-grid">
+            {% for user in pending %}
+            <div class="friend-card">
+                <a href="/profile/{{ user.id }}" class="friend-card__avatar">{{ user.username[0].upper() }}</a>
+                <div class="friend-card__info">
+                    <a href="/profile/{{ user.id }}" class="friend-card__name">{{ user.username }}</a>
+                    {% if user.location and user.is_public %}<p class="friend-card__meta">📍 {{ user.location }}</p>{% endif %}
+                </div>
+                <div class="friend-card__btns">
+                    <form method="POST" action="/friend/accept/{{ user.id }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn--small btn--green">✓</button>
+                    </form>
+                    <form method="POST" action="/friend/decline/{{ user.id }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn--small btn--outline">✕</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="friends-section">
+        <h3 class="section-title">Mijn vrienden ({{ friends|length }})</h3>
+        {% if friends %}
+        <div class="friends-grid">
+            {% for user in friends %}
+            <div class="friend-card">
+                <a href="/profile/{{ user.id }}" class="friend-card__avatar">{{ user.username[0].upper() }}</a>
+                <div class="friend-card__info">
+                    <a href="/profile/{{ user.id }}" class="friend-card__name">{{ user.username }}</a>
+                    {% if user.location and user.is_public %}<p class="friend-card__meta">📍 {{ user.location }}</p>{% endif %}
+                    {% if user.age and user.is_public %}<p class="friend-card__meta">🎂 {{ user.age }} jaar</p>{% endif %}
+                </div>
+                <div class="friend-card__btns">
+                    <a href="/messages/{{ user.id }}" class="btn btn--small">💬</a>
+                    <form method="POST" action="/friend/remove/{{ user.id }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn--small btn--outline">✕</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+            <p class="muted-center">Je hebt nog geen vrienden. Zoek mensen op via <a href="/profiles">Profielen</a>!</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

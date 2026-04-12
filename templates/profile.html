@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="profile-detail-page">
+    <a href="/profiles" class="back-link">← Terug naar profielen</a>
+
+    <div class="profile-detail-card">
+        <div class="profile-detail__avatar">{{ user.username[0].upper() }}</div>
+        <h2>{{ user.username }}</h2>
+
+        {% if user.is_public %}
+            {% if user.location %}<p class="profile-detail__info">📍 {{ user.location }}</p>{% endif %}
+            {% if user.age %}<p class="profile-detail__info">🎂 {{ user.age }} jaar</p>{% endif %}
+            <p class="profile-detail__info muted">Lid sinds {{ user.created_at.strftime('%d-%m-%Y') }}</p>
+        {% else %}
+            <p class="profile-detail__info">🔒 Dit profiel is privé</p>
+            <p class="profile-detail__info muted">Lid sinds {{ user.created_at.strftime('%d-%m-%Y') }}</p>
+        {% endif %}
+
+        <div class="profile-detail__actions">
+            {% if status == 'friends' %}
+                <span class="friend-badge friend-badge--yes">✓ Jullie zijn vrienden</span>
+                <form method="POST" action="/friend/remove/{{ user.id }}" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn--outline btn--small">Verwijderen</button>
+                </form>
+            {% elif status == 'pending_sent' %}
+                <span class="friend-badge friend-badge--pending">⏳ Verzoek verzonden</span>
+            {% elif status == 'pending_received' %}
+                <form method="POST" action="/friend/accept/{{ user.id }}" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn--small btn--green">✓ Accepteren</button>
+                </form>
+                <form method="POST" action="/friend/decline/{{ user.id }}" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn--outline btn--small">Weigeren</button>
+                </form>
+            {% else %}
+                <form method="POST" action="/friend/add/{{ user.id }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn">+ Vriend toevoegen</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="message-box">
+        <h3>Stuur een bericht</h3>
+        <form method="POST" action="/messages/send/{{ user.id }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="field">
+                {{ msg_form.body(placeholder="Schrijf een bericht…", rows=3) }}
+            </div>
+            <button type="submit" class="btn">Versturen</button>
+        </form>
+        <a href="/messages/{{ user.id }}" class="btn btn--outline" style="margin-top:10px; display:inline-block;">Volledig gesprek →</a>
+    </div>
+</div>
+{% endblock %}

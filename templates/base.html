@@ -1,31 +1,47 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<title>Pear2Pear</title>
-		<link rel="stylesheet" href="static/style.css">
-
-	</head>
-	<body>
-		<header>
-			<a href="/" class="invlink"><h1>Pear2Pear</h1></a>
-			<div class="dropdown">
-				<button class="dropbtn" aria-label="Menu">
-					<svg xmlns="icons/bars-solid-full.svg" viewBox="0 0 640 640" width="24" height="24" aria-hidden="true" focusable="false">
-						<path fill="white" d="M96 160C96 142.3 110.3 128 128 128L512 128C529.7 128 544 142.3 544 160C544 177.7 529.7 192 512 192L128 192C110.3 192 96 177.7 96 160zM96 320C96 302.3 110.3 288 128 288L512 288C529.7 288 544 302.3 544 320C544 337.7 529.7 352 512 352L128 352C110.3 352 96 337.7 96 320zM544 480C544 497.7 529.7 512 512 512L128 512C110.3 512 96 497.7 96 480C96 462.3 110.3 448 128 448L512 448C529.7 448 544 462.3 544 480z"/>
-					</svg>
-				</button>
-				<div class="dropdown-content">
-					<a href="/account">Account</a>
-					<a href="/logout" id="logout">Logout</a>
-				</div>
-			</div>
-		</header>
-        <main>
-        {% block content %}
-        <!-- kindertjes hiero-->
-        {% endblock %}
-        </main>
-	</body>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pear2Pear</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <a href="/" class="invlink"><h1>Pear2Pear</h1></a>
+        <div class="dropdown">
+            <button class="dropbtn" aria-label="Menu">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="24" height="24" aria-hidden="true" focusable="false">
+                    <path fill="white" d="M96 160C96 142.3 110.3 128 128 128L512 128C529.7 128 544 142.3 544 160C544 177.7 529.7 192 512 192L128 192C110.3 192 96 177.7 96 160zM96 320C96 302.3 110.3 288 128 288L512 288C529.7 288 544 302.3 544 320C544 337.7 529.7 352 512 352L128 352C110.3 352 96 337.7 96 320zM544 480C544 497.7 529.7 512 512 512L128 512C110.3 512 96 497.7 96 480C96 462.3 110.3 448 128 448L512 448C529.7 448 544 462.3 544 480z"/>
+                </svg>
+            </button>
+            <div class="dropdown-content">
+                <a href="/profiles">Profielen</a>
+                {% if current_user.is_authenticated %}
+                    <a href="/friends">Vrienden
+                        {% set pending_count = current_user.pending_received()|length %}
+                        {% if pending_count > 0 %}
+                            <span class="nav-badge">{{ pending_count }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="/messages">Berichten
+                        {% set unread = current_user.unread_message_count() %}
+                        {% if unread > 0 %}
+                            <span class="nav-badge">{{ unread }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="/account">Account</a>
+                    <a href="/logout">Uitloggen</a>
+                {% else %}
+                    <a href="/login">Inloggen</a>
+                    <a href="/register">Registreren</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+    <main>
+    {% block content %}
+    {% endblock %}
+    </main>
+</body>
 </html>

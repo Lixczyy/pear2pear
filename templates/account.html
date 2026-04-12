@@ -1,15 +1,83 @@
 {% extends "base.html" %}
-
 {% block title %}Account{% endblock %}
 
 {% block content %}
-<div class="box">
-    <div class="center">
-        <h2>{{ user.username }}</h2>
-        <p>Email: {{ user.email }}</p>
-        <p>Lid sinds: {{ user.created_at.strftime('%d-%m-%Y') }}</p>
-        <p>Laatste login: {{ user.last_login.strftime('%d-%m-%Y %H:%M') }}</p>
-        <a href="/logout" class="btn" style="margin-top: 16px; display: inline-block;">Uitloggen</a>
+<div class="account-page">
+
+    <div class="box account-info">
+        <div class="center">
+            <div class="account-avatar">{{ user.username[0].upper() }}</div>
+            <h2>{{ user.username }}</h2>
+            <p>{{ user.email }}</p>
+            <p class="account-meta">Lid sinds {{ user.created_at.strftime('%d-%m-%Y') }}</p>
+            <p class="account-meta">Laatste login {{ user.last_login.strftime('%d-%m-%Y %H:%M') }}</p>
+            <span class="account-badge {% if user.is_public %}badge--public{% else %}badge--private{% endif %}">
+                {% if user.is_public %}🌐 Openbaar{% else %}🔒 Privé{% endif %}
+            </span>
+        </div>
     </div>
+
+    <div class="box account-edit">
+        <h3>Profiel bewerken</h3>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <p class="flash flash-{{ category }}">{{ message }}</p>
+            {% endfor %}
+        {% endwith %}
+
+        <form method="POST" action="/account">
+            {{ form.hidden_tag() }}
+
+            <div class="field">
+                {{ form.username.label }}
+                {{ form.username() }}
+                {% for error in form.username.errors %}
+                    <span class="field-error">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="field">
+                {{ form.email.label }}
+                {{ form.email() }}
+                {% for error in form.email.errors %}
+                    <span class="field-error">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="field">
+                {{ form.age.label }}
+                {{ form.age(placeholder="Jouw leeftijd") }}
+                {% for error in form.age.errors %}
+                    <span class="field-error">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="field">
+                {{ form.location.label }}
+                {{ form.location(placeholder="Stad, land …") }}
+                {% for error in form.location.errors %}
+                    <span class="field-error">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="field toggle-row">
+                {{ form.is_public(id="is_public") }}
+                <label for="is_public" class="toggle-label">
+                    <span class="toggle-track">
+                        <span class="toggle-thumb"></span>
+                    </span>
+                    Profiel openbaar zichtbaar
+                </label>
+            </div>
+
+            <div class="field">
+                {{ form.submit(class="btn") }}
+            </div>
+        </form>
+
+        <a href="/logout" class="btn btn--outline" style="margin-top: 8px; display: inline-block;">Uitloggen</a>
+    </div>
+
 </div>
 {% endblock %}
