@@ -3,14 +3,13 @@
 {% block title %}Account{% endblock %}
 
 {% block content %}
-    <div class="box">
-				<div class="center">
-					<h2>[Username]</h2>
-					<p>Email: [Email]</p>
-					<p>Change password</p>
-					<p>Member since: [Date]</p>
-					<p>Last login: [Date]</p>
-				</div>
-				
-			</div>
+<div class="box">
+    <div class="center">
+        <h2>{{ user.username }}</h2>
+        <p>Email: {{ user.email }}</p>
+        <p>Lid sinds: {{ user.created_at.strftime('%d-%m-%Y') }}</p>
+        <p>Laatste login: {{ user.last_login.strftime('%d-%m-%Y %H:%M') }}</p>
+        <a href="/logout" class="btn" style="margin-top: 16px; display: inline-block;">Uitloggen</a>
+    </div>
+</div>
 {% endblock %}

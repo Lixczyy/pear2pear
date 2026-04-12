@@ -12,3 +12,5 @@ Funtions:
 2. Speed select
 3. File handeling <-----
 4. 
+
+aslasdflkjhseljkhrlkjebnrselrkjhserlsdkfjh

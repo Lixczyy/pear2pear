@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Inloggen{% endblock %}
+
+{% block content %}
+<div class="box auth-box">
+    <div class="center">
+        <h2>Inloggen</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <p class="flash flash-{{ category }}">{{ message }}</p>
+            {% endfor %}
+        {% endwith %}
+
+        <form method="POST" action="/login">
+            {{ form.hidden_tag() }}
+            <div class="field">
+                {{ form.username.label }}
+                {{ form.username(placeholder="Gebruikersnaam") }}
+                {% for error in form.username.errors %}
+                    <span class="field-error">{{ error }}</span>
+                {% endfor %}
+            </div>
+            <div class="field">
+                {{ form.password.label }}
+                {{ form.password(placeholder="••••••••") }}
+            </div>
+            <div class="field remember-row">
+                {{ form.remember() }}
+                {{ form.remember.label }}
+            </div>
+            <div class="field">
+                {{ form.submit(class="btn") }}
+            </div>
+        </form>
+
+        <p class="auth-switch">Nog geen account? <a href="/register">Registreer hier</a></p>
+    </div>
+</div>
+{% endblock %}
