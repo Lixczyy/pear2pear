@@ -7,6 +7,13 @@ main {
   margin: 0;
 }
 
+.center {
+  display: flex;
+  text-align: center;
+  flex-direction: column;
+  min-height: fit-content;
+}
+
 html, body {
   overflow: hidden;
   height: 100%;
@@ -17,6 +24,16 @@ html, body {
 .box {
   width: 60%;
   height: 400px;
+  padding: 20px;
+  border-radius: 12px;
+  background-color: #490064;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin: 0 auto;
+}
+
+.logout-box {
+  width: 200px;
+  height: 100px;
   padding: 20px;
   border-radius: 12px;
   background-color: #490064;
