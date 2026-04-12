@@ -8,7 +8,7 @@
         {% for user in users %}
             {% if user.id != current_user.id %}
             {% set status = current_user.friendship_status_with(user.id) %}
-            <a href="/profile/{{ user.id }}" class="profile-card {% if not user.is_public %}profile-card--private{% endif %}">
+            <div class="profile-card {% if not user.is_public %}profile-card--private{% endif %}" onclick="window.location='/profile/{{ user.id }}'">
                 <div class="profile-card__avatar">{{ user.username[0].upper() }}</div>
                 <h3 class="profile-card__name">{{ user.username }}</h3>
 
@@ -21,30 +21,27 @@
                     <p class="profile-card__detail profile-card__since">Lid sinds {{ user.created_at.strftime('%d-%m-%Y') }}</p>
                 {% endif %}
 
-                <div class="profile-card__actions" onclick="event.preventDefault()">
+                <div class="profile-card__actions">
                     {% if status == 'friends' %}
                         <span class="friend-badge friend-badge--yes">✓ Vrienden</span>
                     {% elif status == 'pending_sent' %}
                         <span class="friend-badge friend-badge--pending">⏳ Verzonden</span>
                     {% elif status == 'pending_received' %}
                         <div style="display:flex;gap:6px;justify-content:center;">
-                            <form method="POST" action="/friend/accept/{{ user.id }}">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                <button type="submit" class="btn btn--small btn--green">✓</button>
+                            <form method="POST" action="/friend/accept/{{ user.id }}" onclick="event.stopPropagation()">
+                                <button type="submit" class="btn btn--small btn--green">✓ Accepteren</button>
                             </form>
-                            <form method="POST" action="/friend/decline/{{ user.id }}">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <form method="POST" action="/friend/decline/{{ user.id }}" onclick="event.stopPropagation()">
                                 <button type="submit" class="btn btn--small btn--outline">✕</button>
                             </form>
                         </div>
                     {% else %}
-                        <form method="POST" action="/friend/add/{{ user.id }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <form method="POST" action="/friend/add/{{ user.id }}" onclick="event.stopPropagation()">
                             <button type="submit" class="btn btn--small">+ Vriend</button>
                         </form>
                     {% endif %}
                 </div>
-            </a>
+            </div>
             {% endif %}
         {% endfor %}
     </div>
