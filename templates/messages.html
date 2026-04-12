@@ -5,12 +5,25 @@
 <div class="messages-page">
     <h2 class="profiles-title">Berichten</h2>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for category, message in messages %}
-            <p class="flash flash-{{ category }}">{{ message }}</p>
+    {% if notifs %}
+    <div class="notif-section">
+        <h3 class="section-title">Meldingen</h3>
+        {% for n in notifs %}
+        <div class="notif-item {% if not n.read %}notif-item--unread{% endif %}">
+            <span class="notif-icon">🔔</span>
+            <div class="notif-body">
+                <p>{{ n.body }}</p>
+                <span class="notif-time">{{ n.created_at.strftime('%d-%m-%Y %H:%M') }}</span>
+            </div>
+            {% if n.link %}
+            <a href="{{ n.link }}" class="notif-link">Bekijk →</a>
+            {% endif %}
+        </div>
         {% endfor %}
-    {% endwith %}
+    </div>
+    {% endif %}
 
+    <h3 class="section-title" style="margin-top:28px;">Gesprekken</h3>
     {% if conversations %}
     <div class="conversation-list">
         {% for conv in conversations %}
@@ -30,7 +43,7 @@
         {% endfor %}
     </div>
     {% else %}
-        <p class="muted-center">Nog geen berichten. Klik op een profiel om iemand te beichten!</p>
+        <p class="muted-center">Nog geen gesprekken. Klik op een profiel om iemand te beichten!</p>
     {% endif %}
 </div>
 {% endblock %}

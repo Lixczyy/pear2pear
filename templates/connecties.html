@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% from "macros.html" import avatar %}
+{% block title %}Connecties{% endblock %}
+
+{% block content %}
+<div class="profiles-page">
+    <h2 class="profiles-title">Connecties</h2>
+
+    {# ── Pending requests ── #}
+    {% if pending %}
+    <div class="connections-section">
+        <h3 class="section-title">
+            Verzoeken
+            <span class="nav-badge" style="position:relative;top:0;right:0;">{{ pending|length }}</span>
+        </h3>
+        <div class="friends-grid">
+            {% for user in pending %}
+            <div class="friend-card">
+                <a href="/profile/{{ user.id }}" class="friend-card__avatar-wrap">
+                    {{ avatar(user, size=44) }}
+                </a>
+                <div class="friend-card__info">
+                    <a href="/profile/{{ user.id }}" class="friend-card__name">{{ user.username }}</a>
+                    {% if user.location and user.is_public %}<p class="friend-card__meta">📍 {{ user.location }}</p>{% endif %}
+                </div>
+                <div class="friend-card__btns">
+                    <form method="POST" action="/friend/accept/{{ user.id }}" onclick="event.stopPropagation()">
+                        <button class="btn btn--small btn--green">✓</button>
+                    </form>
+                    <form method="POST" action="/friend/decline/{{ user.id }}" onclick="event.stopPropagation()">
+                        <button class="btn btn--small btn--outline">✕</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Friends strip ── #}
+    {% if friends %}
+    <div class="connections-section">
+        <h3 class="section-title">Mijn connecties ({{ friends|length }})</h3>
+        <div class="friends-strip">
+            {% for user in friends %}
+            <a href="/profile/{{ user.id }}" class="friend-pill">
+                {{ avatar(user, size=32) }}
+                <span class="friend-pill__name">{{ user.username }}</span>
+                {% if user.location and user.is_public %}
+                    <span class="friend-pill__meta">📍 {{ user.location }}</span>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── All users grid ── #}
+    <div class="connections-section">
+        <h3 class="section-title">Alle gebruikers</h3>
+        <div class="profiles-grid">
+            {% for user in users %}
+                {% if user.id != current_user.id %}
+                {% set status = current_user.friendship_status_with(user.id) %}
+                <div class="profile-card {% if not user.is_public %}profile-card--private{% endif %}"
+                     onclick="window.location='/profile/{{ user.id }}'">
+                    {{ avatar(user, size=56, cls="profile-card__avatar-img") }}
+                    <h3 class="profile-card__name">{{ user.username }}</h3>
+
+                    {% if user.is_public %}
+                        {% if user.location %}<p class="profile-card__detail">📍 {{ user.location }}</p>{% endif %}
+                        {% if user.age %}<p class="profile-card__detail">🎂 {{ user.age }} jaar</p>{% endif %}
+                        <p class="profile-card__detail profile-card__since">Lid sinds {{ user.created_at.strftime('%d-%m-%Y') }}</p>
+                    {% else %}
+                        <p class="profile-card__detail profile-card__private-label">🔒 Privé profiel</p>
+                        <p class="profile-card__detail profile-card__since">Lid sinds {{ user.created_at.strftime('%d-%m-%Y') }}</p>
+                    {% endif %}
+
+                    <div class="profile-card__actions">
+                        {% if status == 'friends' %}
+                            <span class="friend-badge friend-badge--yes">✓ Connectie</span>
+                        {% elif status == 'pending_sent' %}
+                            <span class="friend-badge friend-badge--pending">⏳ Verzonden</span>
+                        {% elif status == 'pending_received' %}
+                            <div style="display:flex;gap:6px;justify-content:center;">
+                                <form method="POST" action="/friend/accept/{{ user.id }}" onclick="event.stopPropagation()">
+                                    <button type="submit" class="btn btn--small btn--green">✓ Accepteren</button>
+                                </form>
+                                <form method="POST" action="/friend/decline/{{ user.id }}" onclick="event.stopPropagation()">
+                                    <button type="submit" class="btn btn--small btn--outline">✕</button>
+                                </form>
+                            </div>
+                        {% else %}
+                            <form method="POST" action="/friend/add/{{ user.id }}" onclick="event.stopPropagation()">
+                                <button type="submit" class="btn btn--small">+ Connectie</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

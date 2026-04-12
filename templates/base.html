@@ -16,23 +16,23 @@
                 </svg>
             </button>
             <div class="dropdown-content">
-                <a href="/profiles">Profielen</a>
                 {% if current_user.is_authenticated %}
-                    <a href="/friends">Vrienden
+                    <a href="/connecties">Social</a>
                         {% set pending_count = current_user.pending_received()|length %}
                         {% if pending_count > 0 %}
                             <span class="nav-badge">{{ pending_count }}</span>
                         {% endif %}
                     </a>
                     <a href="/messages">Berichten
-                        {% set unread = current_user.unread_message_count() %}
-                        {% if unread > 0 %}
-                            <span class="nav-badge">{{ unread }}</span>
+                        {% set inbox = current_user.total_inbox_count() %}
+                        {% if inbox > 0 %}
+                            <span class="nav-badge">{{ inbox }}</span>
                         {% endif %}
                     </a>
                     <a href="/account">Account</a>
                     <a href="/logout">Uitloggen</a>
                 {% else %}
+                    <a href="/connecties">Social</a>
                     <a href="/login">Inloggen</a>
                     <a href="/register">Registreren</a>
                 {% endif %}

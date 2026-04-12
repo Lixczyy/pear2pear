@@ -1,12 +1,13 @@
 {% extends "base.html" %}
+{% from "macros.html" import avatar %}
 {% block title %}{{ user.username }}{% endblock %}
 
 {% block content %}
 <div class="profile-detail-page">
-    <a href="/profiles" class="back-link">← Terug naar profielen</a>
+    <a href="/connecties" class="back-link">← Terug naar connecties</a>
 
     <div class="profile-detail-card">
-        <div class="profile-detail__avatar">{{ user.username[0].upper() }}</div>
+        {{ avatar(user, size=88) }}
         <h2>{{ user.username }}</h2>
 
         {% if user.is_public %}
@@ -20,41 +21,63 @@
 
         <div class="profile-detail__actions">
             {% if status == 'friends' %}
-                <span class="friend-badge friend-badge--yes">✓ Jullie zijn vrienden</span>
+                <span class="friend-badge friend-badge--yes">✓ Jullie zijn connecties</span>
                 <form method="POST" action="/friend/remove/{{ user.id }}" style="display:inline;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <button type="submit" class="btn btn--outline btn--small">Verwijderen</button>
                 </form>
             {% elif status == 'pending_sent' %}
                 <span class="friend-badge friend-badge--pending">⏳ Verzoek verzonden</span>
             {% elif status == 'pending_received' %}
                 <form method="POST" action="/friend/accept/{{ user.id }}" style="display:inline;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <button type="submit" class="btn btn--small btn--green">✓ Accepteren</button>
                 </form>
                 <form method="POST" action="/friend/decline/{{ user.id }}" style="display:inline;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <button type="submit" class="btn btn--outline btn--small">Weigeren</button>
                 </form>
             {% else %}
                 <form method="POST" action="/friend/add/{{ user.id }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <button type="submit" class="btn">+ Vriend toevoegen</button>
+                    <button type="submit" class="btn">+ Connectie toevoegen</button>
                 </form>
             {% endif %}
         </div>
     </div>
 
+    {% if user.friends_public and (mutual_friends or fof) %}
+    <div class="box" style="padding:20px 24px;">
+        {% if mutual_friends %}
+        <h3 style="margin-top:0;">👥 Gemeenschappelijke connecties</h3>
+        <div class="mini-friend-list">
+            {% for f in mutual_friends %}
+            <a href="/profile/{{ f.id }}" class="mini-friend">
+                {{ avatar(f, size=28) }}
+                <span>{{ f.username }}</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if fof %}
+        <h3 {% if mutual_friends %}style="margin-top:18px;"{% else %}style="margin-top:0;"{% endif %}>🔗 Connecties van {{ user.username }}</h3>
+        <div class="mini-friend-list">
+            {% for f in fof %}
+            <a href="/profile/{{ f.id }}" class="mini-friend">
+                {{ avatar(f, size=28) }}
+                <span>{{ f.username }}</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <div class="message-box">
         <h3>Stuur een bericht</h3>
         <form method="POST" action="/messages/send/{{ user.id }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="field">
                 <textarea name="body" placeholder="Schrijf een bericht…" rows="3" required></textarea>
             </div>
             <button type="submit" class="btn">Versturen</button>
         </form>
-        <a href="/messages/{{ user.id }}" class="btn btn--outline" style="margin-top:10px; display:inline-block;">Volledig gesprek →</a>
+        <a href="/messages/{{ user.id }}" class="btn btn--outline" style="margin-top:10px;display:inline-block;">Volledig gesprek →</a>
     </div>
 </div>
 {% endblock %}

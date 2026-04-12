@@ -1,0 +1,13 @@
+{% macro avatar(user, size=48, cls="") %}
+{% if user.avatar %}
+<img src="/static/avatars/{{ user.avatar }}"
+     alt="{{ user.username }}"
+     class="avatar-img {{ cls }}"
+     style="width:{{ size }}px;height:{{ size }}px;border-radius:50%;object-fit:cover;border:2px solid #bb86fc;">
+{% else %}
+<div class="avatar-placeholder {{ cls }}"
+     style="width:{{ size }}px;height:{{ size }}px;font-size:{{ (size * 0.42)|int }}px;">
+  {{ user.username[0].upper() }}
+</div>
+{% endif %}
+{% endmacro %}

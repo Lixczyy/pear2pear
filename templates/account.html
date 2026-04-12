@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import avatar %}
 {% block title %}Account{% endblock %}
 
 {% block content %}
@@ -6,7 +7,15 @@
 
     <div class="box account-info">
         <div class="center">
-            <div class="account-avatar">{{ user.username[0].upper() }}</div>
+            {{ avatar(user, size=88) }}
+
+            <form method="POST" action="/account/avatar" enctype="multipart/form-data" style="margin:10px 0 4px;">
+                <label class="avatar-upload-label" title="Profielfoto wijzigen">
+                    📷 Foto wijzigen
+                    <input type="file" name="avatar" accept="image/*" onchange="this.form.submit()" style="display:none;">
+                </label>
+            </form>
+
             <h2>{{ user.username }}</h2>
             <p>{{ user.email }}</p>
             <p class="account-meta">Lid sinds {{ user.created_at.strftime('%d-%m-%Y') }}</p>
@@ -14,6 +23,9 @@
             <span class="account-badge {% if user.is_public %}badge--public{% else %}badge--private{% endif %}">
                 {% if user.is_public %}🌐 Openbaar{% else %}🔒 Privé{% endif %}
             </span>
+            {% if user.friends_public %}
+            <span class="account-badge badge--public" style="margin-top:6px;">👥 Vrienden zichtbaar</span>
+            {% endif %}
         </div>
     </div>
 
@@ -36,7 +48,6 @@
                     <span class="field-error">{{ error }}</span>
                 {% endfor %}
             </div>
-
             <div class="field">
                 {{ form.email.label }}
                 {{ form.email() }}
@@ -44,39 +55,34 @@
                     <span class="field-error">{{ error }}</span>
                 {% endfor %}
             </div>
-
             <div class="field">
                 {{ form.age.label }}
                 {{ form.age(placeholder="Jouw leeftijd") }}
-                {% for error in form.age.errors %}
-                    <span class="field-error">{{ error }}</span>
-                {% endfor %}
             </div>
-
             <div class="field">
                 {{ form.location.label }}
                 {{ form.location(placeholder="Stad, land …") }}
-                {% for error in form.location.errors %}
-                    <span class="field-error">{{ error }}</span>
-                {% endfor %}
             </div>
-
             <div class="field toggle-row">
                 {{ form.is_public(id="is_public") }}
                 <label for="is_public" class="toggle-label">
-                    <span class="toggle-track">
-                        <span class="toggle-thumb"></span>
-                    </span>
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
                     Profiel openbaar zichtbaar
                 </label>
             </div>
-
+            <div class="field toggle-row">
+                {{ form.friends_public(id="friends_public") }}
+                <label for="friends_public" class="toggle-label">
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                    Vriendenlijst openbaar tonen
+                </label>
+            </div>
             <div class="field">
                 {{ form.submit(class="btn") }}
             </div>
         </form>
 
-        <a href="/logout" class="btn btn--outline" style="margin-top: 8px; display: inline-block;">Uitloggen</a>
+        <a href="/logout" class="btn btn--outline" style="margin-top:8px;display:inline-block;">Uitloggen</a>
     </div>
 
 </div>

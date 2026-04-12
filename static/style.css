@@ -526,3 +526,125 @@ main:has(.profile-detail-page) {
   align-items: flex-start;
   overflow-y: auto;
 }
+
+/* ── Notifications ── */
+.notif-section { margin-bottom: 8px; }
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #2a0050;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border-left: 3px solid #3a006f;
+}
+.notif-item--unread {
+  border-left-color: #e040fb;
+  background: #35005a;
+}
+.notif-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
+.notif-body { flex: 1; }
+.notif-body p { margin: 0 0 4px; color: white; font-size: 0.9rem; }
+.notif-time { font-size: 0.75rem; color: #888; }
+.notif-link {
+  color: #bb86fc;
+  text-decoration: none;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  align-self: center;
+}
+.notif-link:hover { text-decoration: underline; }
+
+/* ── Friends-of-friends on profile ── */
+.mini-friend-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+.mini-friend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #3a006f;
+  border-radius: 999px;
+  padding: 5px 12px 5px 5px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.mini-friend:hover { background: #5b21b6; }
+.mini-friend span { color: white; font-size: 0.85rem; }
+
+/* ── Connecties page sections ── */
+.connections-section { margin-bottom: 32px; }
+
+/* ── Friends strip (horizontal scrollable row) ── */
+.friends-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: #6b2fa0 transparent;
+}
+.friends-strip::-webkit-scrollbar { height: 4px; }
+.friends-strip::-webkit-scrollbar-track { background: transparent; }
+.friends-strip::-webkit-scrollbar-thumb { background: #6b2fa0; border-radius: 999px; }
+
+.friend-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #490064;
+  border: 1px solid #6b2fa044;
+  border-radius: 999px;
+  padding: 6px 14px 6px 6px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.friend-pill:hover { background: #5b21b6; border-color: #bb86fc; }
+.friend-pill__avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed, #490064);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: white;
+  border: 1px solid #bb86fc;
+  flex-shrink: 0;
+}
+.friend-pill__name { color: white; font-size: 0.88rem; font-weight: 600; }
+.friend-pill__meta { color: #999; font-size: 0.75rem; margin-left: 2px; }
+
+/* ── Avatar ── */
+.avatar-placeholder {
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed, #490064);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: white;
+  border: 2px solid #bb86fc;
+  flex-shrink: 0;
+}
+.avatar-img { flex-shrink: 0; }
+.profile-card__avatar-img { margin-bottom: 10px; }
+
+.avatar-upload-label {
+  display: inline-block;
+  cursor: pointer;
+  color: #bb86fc;
+  font-size: 0.82rem;
+  padding: 4px 10px;
+  border: 1px solid #6b2fa0;
+  border-radius: 999px;
+  transition: background 0.15s;
+}
+.avatar-upload-label:hover { background: #3a006f; }

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import avatar %}
 {% block title %}Gesprek met {{ partner.username }}{% endblock %}
 
 {% block content %}
@@ -6,7 +7,7 @@
     <div class="conversation-header">
         <a href="/messages" class="back-link">← Berichten</a>
         <a href="/profile/{{ partner.id }}" class="conversation-header__name">
-            <div class="mini-avatar">{{ partner.username[0].upper() }}</div>
+            {{ avatar(partner, size=36) }}
             {{ partner.username }}
         </a>
     </div>
@@ -24,14 +25,12 @@
     </div>
 
     <form method="POST" action="/messages/{{ partner.id }}" class="chat-form">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <textarea name="body" class="chat-input" placeholder="Schrijf een bericht…" rows="2" required></textarea>
         <button type="submit" class="btn">Versturen</button>
     </form>
 </div>
 
 <script>
-    // Scroll to bottom of thread
     const thread = document.getElementById('thread');
     thread.scrollTop = thread.scrollHeight;
 </script>

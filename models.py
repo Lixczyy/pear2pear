@@ -18,6 +18,18 @@ class Friendship(db.Model):
     __table_args__ = (db.UniqueConstraint("from_id", "to_id"),)
 
 
+class Notification(db.Model):
+    """Persistent system notifications shown in the messages page."""
+    __tablename__ = "notifications"
+
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    body       = db.Column(db.String(300), nullable=False)
+    link       = db.Column(db.String(200), nullable=True)   # optional click-through
+    read       = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class Message(db.Model):
     __tablename__ = "messages"
 
@@ -42,12 +54,15 @@ class User(UserMixin, db.Model):
     created_at    = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     last_login    = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-    age       = db.Column(db.Integer,     nullable=True)
-    location  = db.Column(db.String(100), nullable=True)
-    is_public = db.Column(db.Boolean,     default=True, nullable=False)
+    age            = db.Column(db.Integer,     nullable=True)
+    avatar         = db.Column(db.String(200),   nullable=True)
+    location       = db.Column(db.String(100), nullable=True)
+    is_public      = db.Column(db.Boolean, default=True,  nullable=False)
+    friends_public = db.Column(db.Boolean, default=False, nullable=False)
 
     sent_requests     = db.relationship("Friendship", foreign_keys=[Friendship.from_id], backref="from_user", lazy="dynamic")
     received_requests = db.relationship("Friendship", foreign_keys=[Friendship.to_id],   backref="to_user",   lazy="dynamic")
+    notifications     = db.relationship("Notification", foreign_keys=[Notification.user_id], backref="owner", lazy="dynamic", order_by=Notification.created_at.desc())
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
@@ -79,6 +94,13 @@ class User(UserMixin, db.Model):
 
     def unread_message_count(self):
         return Message.query.filter_by(receiver_id=self.id, read=False).count()
+
+    def unread_notification_count(self):
+        return Notification.query.filter_by(user_id=self.id, read=False).count()
+
+    def total_inbox_count(self):
+        """Badge number shown on Berichten nav item."""
+        return self.unread_message_count() + self.unread_notification_count()
 
     def __repr__(self) -> str:
         return f"<User {self.username!r}>"
