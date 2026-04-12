@@ -1,10 +1,7 @@
-"""
-Vul de database met nep-gebruikers.
-
-Gebruik:
-    python seed.py          # vult 20 gebruikers (standaard)
-    python seed.py 50       # vult 50 gebruikers
-    python seed.py 10 --clear   # verwijdert eerst alle nep-gebruikers, dan 10 nieuwe
+""""
+    python seed.py          #  20 users (standaard)
+    python seed.py 50       # 50 users
+    python seed.py --clear   # del alle nep-users
 """
 
 import sys
@@ -12,10 +9,11 @@ import os
 import random
 import string
 
-# ── Configuratie ─────────────────────────────────────────────────────────────
+#
 DB_PATH = os.path.join("instance", "pear2pear.db")
-DEFAULT_PASSWORD = "wachtwoord"   # wachtwoord voor alle seed-accounts
+DEFAULT_PASSWORD = "wachtwoord" 
 
+# voornaam, achternaam en stad gegenerate door chat :)
 FIRST_NAMES = [
     "Emma","Liam","Olivia","Noah","Ava","Elijah","Sophia","Lucas","Isabella","Mason",
     "Mia","Ethan","Amelia","Aiden","Harper","Caden","Evelyn","Grayson","Abigail","Jackson",
@@ -46,8 +44,7 @@ CITIES = [
     "Tokyo","Seoul","Beijing","Shanghai","Singapore","Bangkok","Jakarta","Mumbai","Delhi","Osaka",
 ]
 
-# ─────────────────────────────────────────────────────────────────────────────
-
+#
 def random_username(first, last):
     suffix = random.randint(10, 999)
     styles = [
@@ -77,14 +74,13 @@ def main():
                 print(f"Onbekend argument: {a}")
                 sys.exit(1)
 
-    # Import Flask app so we get the right DB + password hashing
+    # 
     from main import app
     from models import User, db
 
     with app.app_context():
         if clear:
             deleted = User.query.filter(User.username.like("%[seed]%")).delete()
-            # Simpler: delete by email domain marker we embed
             deleted = db.session.execute(
                 db.text("DELETE FROM users WHERE email LIKE '%@seed.fake'")
             ).rowcount
@@ -115,8 +111,7 @@ def main():
             created += 1
 
         db.session.commit()
-        print(f"✅  {created} nep-gebruikers aangemaakt (wachtwoord: '{DEFAULT_PASSWORD}').")
-        print(f"    Gebruik --clear om ze later te verwijderen.")
+        print(f"{created} users (wachtwoord: '{DEFAULT_PASSWORD}').")
 
 if __name__ == "__main__":
     main()
