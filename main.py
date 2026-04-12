@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for
 from time import *
-from flask-wtf import FlaskForm
+from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 app= Flask(__name__)
 
