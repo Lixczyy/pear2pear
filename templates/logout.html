@@ -1,16 +1,9 @@
-<!doctype html>
-<html lang="en">
-	<head>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta http-equiv="refresh" content="3;url=/" />
-		<title>Pear2Pear</title>
-		<link rel="stylesheet" href="static/style.css">
+{% extends "base.html" %}
 
-	</head>
-	<body>
-		<main>
-			<div class="logout-box">
+{% block title %}Logout{% endblock %}
+
+{% block content %}
+    <div class="logout-box">
 				<div class="center">
 					<p>You have been logged out!</p>
 					<p>You will be redirected to the homepage in <span id="countdown">3</span> seconds.</p>
@@ -26,6 +19,4 @@
 						</script>
 				</div> 
 			</div>
-		</main>
-	</body>
-</html>
+{% endblock %}
