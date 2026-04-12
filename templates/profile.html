@@ -22,23 +22,23 @@
             {% if status == 'friends' %}
                 <span class="friend-badge friend-badge--yes">✓ Jullie zijn vrienden</span>
                 <form method="POST" action="/friend/remove/{{ user.id }}" style="display:inline;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <button type="submit" class="btn btn--outline btn--small">Verwijderen</button>
                 </form>
             {% elif status == 'pending_sent' %}
                 <span class="friend-badge friend-badge--pending">⏳ Verzoek verzonden</span>
             {% elif status == 'pending_received' %}
                 <form method="POST" action="/friend/accept/{{ user.id }}" style="display:inline;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <button type="submit" class="btn btn--small btn--green">✓ Accepteren</button>
                 </form>
                 <form method="POST" action="/friend/decline/{{ user.id }}" style="display:inline;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <button type="submit" class="btn btn--outline btn--small">Weigeren</button>
                 </form>
             {% else %}
                 <form method="POST" action="/friend/add/{{ user.id }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <button type="submit" class="btn">+ Vriend toevoegen</button>
                 </form>
             {% endif %}
@@ -48,7 +48,7 @@
     <div class="message-box">
         <h3>Stuur een bericht</h3>
         <form method="POST" action="/messages/send/{{ user.id }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="field">
                 {{ msg_form.body(placeholder="Schrijf een bericht…", rows=3) }}
             </div>

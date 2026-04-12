@@ -41,9 +41,7 @@ def create_app() -> Flask:
     return app
 
 
-# ---------------------------------------------------------------------------
-# Forms
-# ---------------------------------------------------------------------------
+# Forms :)
 
 class LoginForm(FlaskForm):
     username = StringField("Gebruikersnaam", validators=[DataRequired()])
@@ -96,9 +94,7 @@ class MessageForm(FlaskForm):
     submit = SubmitField("Versturen")
 
 
-# ---------------------------------------------------------------------------
-# Routes
-# ---------------------------------------------------------------------------
+# hier staan de routes :)
 
 def register_routes(app: Flask) -> None:
 
@@ -106,7 +102,7 @@ def register_routes(app: Flask) -> None:
     def index():
         return render_template("index.html")
 
-    # ── Auth ────────────────────────────────────────────────────────────────
+    # authenticate :)
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
@@ -144,7 +140,7 @@ def register_routes(app: Flask) -> None:
         logout_user()
         return render_template("logout.html")
 
-    # ── Account ─────────────────────────────────────────────────────────────
+    # account pagina :)
 
     @app.route("/account", methods=["GET", "POST"])
     @login_required
@@ -170,7 +166,7 @@ def register_routes(app: Flask) -> None:
             return redirect(url_for("account"))
         return render_template("account.html", user=current_user, form=form)
 
-    # ── Profiles grid ───────────────────────────────────────────────────────
+    # profiles pagina :)
 
     @app.route("/profiles")
     @login_required
@@ -178,7 +174,7 @@ def register_routes(app: Flask) -> None:
         all_users = User.query.order_by(User.username).all()
         return render_template("profiles.html", users=all_users)
 
-    # ── Single profile ──────────────────────────────────────────────────────
+    # eigen profiel pagina :)
 
     @app.route("/profile/<int:user_id>")
     @login_required
@@ -190,7 +186,7 @@ def register_routes(app: Flask) -> None:
         msg_form = MessageForm()
         return render_template("profile.html", user=user, status=status, msg_form=msg_form)
 
-    # ── Friend actions ──────────────────────────────────────────────────────
+    # friendship routes :)
 
     @app.route("/friend/add/<int:user_id>", methods=["POST"])
     @login_required
@@ -234,7 +230,7 @@ def register_routes(app: Flask) -> None:
             db.session.commit()
         return redirect(request.referrer or url_for("friends"))
 
-    # ── Friends page ────────────────────────────────────────────────────────
+    # friends pagina :)
 
     @app.route("/friends")
     @login_required
@@ -243,7 +239,7 @@ def register_routes(app: Flask) -> None:
         pending     = current_user.pending_received()
         return render_template("friends.html", friends=friend_list, pending=pending)
 
-    # ── Messages ────────────────────────────────────────────────────────────
+    # messages pagina :)
 
     @app.route("/messages")
     @login_required
@@ -303,6 +299,6 @@ def register_routes(app: Flask) -> None:
 
 
 app = create_app()
-
+# debug nog uitzetten :)
 if __name__ == "__main__":
     app.run(debug=True)

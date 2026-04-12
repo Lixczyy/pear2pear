@@ -17,11 +17,11 @@
                 </div>
                 <div class="friend-card__btns">
                     <form method="POST" action="/friend/accept/{{ user.id }}">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <button class="btn btn--small btn--green">✓</button>
                     </form>
                     <form method="POST" action="/friend/decline/{{ user.id }}">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <button class="btn btn--small btn--outline">✕</button>
                     </form>
                 </div>
@@ -46,7 +46,7 @@
                 <div class="friend-card__btns">
                     <a href="/messages/{{ user.id }}" class="btn btn--small">💬</a>
                     <form method="POST" action="/friend/remove/{{ user.id }}">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <button class="btn btn--small btn--outline">✕</button>
                     </form>
                 </div>

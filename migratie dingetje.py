@@ -7,7 +7,7 @@ import sqlite3
 conn = sqlite3.connect("pear2pear.db")
 cur = conn.cursor()
 
-# Add new columns to users if missing
+# voeg comulms als ik nieuwe heb
 user_columns = [
     "ALTER TABLE users ADD COLUMN age INTEGER",
     "ALTER TABLE users ADD COLUMN location VARCHAR(100)",
@@ -20,7 +20,7 @@ for sql in user_columns:
     except sqlite3.OperationalError as e:
         print(f"⚠ Skipped: {e}")
 
-# Create friendships table
+# friendjes tabel maken
 cur.execute("""
 CREATE TABLE IF NOT EXISTS friendships (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS friendships (
 """)
 print("✓ friendships table ready")
 
-# Create messages table
+# messages tabel maken
 cur.execute("""
 CREATE TABLE IF NOT EXISTS messages (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
