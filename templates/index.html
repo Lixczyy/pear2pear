@@ -1,13 +1,605 @@
 {% extends "base.html" %}
-
-{% block title %}Index - lorem ipsum{% endblock %}
+{% from "macros.html" import avatar %}
+{% block title %}Pear2Pear – Deel bestanden{% endblock %}
 
 {% block content %}
-    <div class="box">
-				<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
-			</div>
-		</main>
-		<footer>
-			<small> Lorem ipsum dolor sit amet consectetur adipisicing elit. Aspernatur vel ad corporis reiciendis unde iure, sapiente reprehenderit exercitationem, tempora ratione consequatur ab eum itaque. Dolor placeat nostrum voluptates consequatur quisquam.</small>
-		</footer>
+<div class="transfer-page">
+
+  <!-- ═══════════════════════════════ LEFT PANEL ═══════════════════════════ -->
+  <div class="transfer-panel transfer-panel--left">
+    <h2 class="panel-title">📁 Bestand</h2>
+
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-zone__inner" id="dropInner">
+        <svg viewBox="0 0 64 64" fill="none" class="drop-icon">
+          <rect x="8" y="16" width="48" height="36" rx="4" stroke="currentColor" stroke-width="3"/>
+          <path d="M22 28 L32 18 L42 28" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="32" y1="18" x2="32" y2="40" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <p class="drop-zone__text">Sleep een bestand hierheen</p>
+        <p class="drop-zone__sub">of</p>
+        <label class="btn">
+          Kies bestand
+          <input type="file" id="fileInput" style="display:none">
+        </label>
+      </div>
+    </div>
+
+    <!-- File info (shown after selection) -->
+    <div class="file-info" id="fileInfo" style="display:none">
+      <div class="file-info__icon" id="fileIcon">📄</div>
+      <div class="file-info__details">
+        <div class="file-info__name" id="fileDisplayName">–</div>
+        <div class="file-info__size" id="fileSize">–</div>
+      </div>
+      <button class="btn btn--outline btn--small" id="clearFile">✕</button>
+    </div>
+
+    <!-- Rename -->
+    <div class="rename-row" id="renameRow" style="display:none">
+      <label class="field-label">Naam voor ontvanger</label>
+      <input type="text" id="renameInput" class="rename-input" placeholder="bestandsnaam.ext">
+    </div>
+
+    <!-- Encryption toggle -->
+    <div class="enc-row" id="encRow" style="display:none">
+      <label class="toggle-label" style="gap:10px;cursor:pointer;">
+        <input type="checkbox" id="encToggle" style="display:none" checked>
+        <span class="toggle-track" id="encTrack"><span class="toggle-thumb" id="encThumb"></span></span>
+        <span id="encLabel">🔒 Extra versleuteling aan</span>
+      </label>
+      <p class="enc-hint">WebRTC is altijd versleuteld (DTLS). Extra AES-256 versleuteling voegt veiligheid toe maar kan iets langzamer zijn.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ RIGHT PANEL ══════════════════════════ -->
+  <div class="transfer-panel transfer-panel--right">
+    <h2 class="panel-title">👤 Ontvanger</h2>
+
+    <div class="recipient-search">
+      <input type="text" id="recipientSearch" class="recipient-input"
+             placeholder="Zoek gebruiker…" autocomplete="off">
+      <div class="recipient-dropdown" id="recipientDropdown"></div>
+    </div>
+
+    <!-- Selected recipient -->
+    <div class="recipient-chosen" id="recipientChosen" style="display:none">
+      <div class="recipient-chosen__card" id="recipientCard"></div>
+      <button class="btn btn--outline btn--small" id="clearRecipient">Wijzigen</button>
+    </div>
+
+    <!-- Friends shortcut -->
+    {% if friends %}
+    <div class="quick-friends">
+      <p class="quick-friends__label">Connecties</p>
+      <div class="quick-friends__list">
+        {% for f in friends %}
+        <button class="quick-friend-btn" data-id="{{ f.id }}" data-name="{{ f.username }}" data-avatar="{{ f.avatar or '' }}">
+          {{ avatar(f, size=36) }}
+          <span>{{ f.username }}</span>
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Send button -->
+    <button class="btn send-btn" id="sendBtn" disabled>
+      <span id="sendBtnLabel">Verstuur bestand</span>
+    </button>
+
+    <!-- Progress -->
+    <div class="progress-area" id="progressArea" style="display:none">
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-stats">
+        <span id="progressPct">0%</span>
+        <span id="progressSpeed"></span>
+        <span id="progressEta"></span>
+      </div>
+      <p class="progress-status" id="progressStatus">Verbinden…</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════ INCOMING TRANSFER MODAL ═══════════════════════════════ -->
+<div class="modal-overlay" id="incomingModal" style="display:none">
+  <div class="modal">
+    <h3>📥 Inkomend bestand</h3>
+    <p id="incomingDesc"></p>
+    <div class="modal-btns">
+      <button class="btn btn--green" id="acceptBtn">Accepteren</button>
+      <button class="btn btn--outline" id="declineBtn">Weigeren</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ RECEIVE PROGRESS MODAL ════════════════════════════════ -->
+<div class="modal-overlay" id="receiveModal" style="display:none">
+  <div class="modal">
+    <h3>📥 Ontvangen…</h3>
+    <p id="receiveDesc"></p>
+    <div class="progress-bar-wrap" style="margin:12px 0">
+      <div class="progress-bar-fill" id="receiveProgressFill"></div>
+    </div>
+    <div class="progress-stats">
+      <span id="receivePct">0%</span>
+      <span id="receiveSpeed"></span>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// State
+// ─────────────────────────────────────────────────────────────────────────────
+const ME = {{ current_user.id }};
+let selectedFile   = null;
+let recipientId    = null;
+let recipientName  = null;
+let peerConn       = null;
+let dataChannel    = null;
+let incomingMeta   = null;
+let incomingFrom   = null;
+let receiveBuffer  = [];
+let receiveSize    = 0;
+let transferStart  = null;
+let lastBytes      = 0;
+let lastTime       = null;
+
+const CHUNK = 65536; // 64 KB chunks — browser DataChannel sweet spot
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SocketIO
+// ─────────────────────────────────────────────────────────────────────────────
+const socket = io();
+
+socket.on("connect", () => console.log("Socket connected:", socket.id));
+
+// ── Incoming transfer request ─────────────────────────────────────────────
+socket.on("transfer_incoming", ({ from_user_id, from_username, offer, file_meta }) => {
+  incomingMeta = file_meta;
+  incomingFrom = from_user_id;
+  document.getElementById("incomingDesc").textContent =
+    `${from_username} wil "${file_meta.name}" (${fmtSize(file_meta.size)}) sturen.`;
+  document.getElementById("incomingModal").style.display = "flex";
+
+  // Store offer for later
+  incomingMeta._offer     = offer;
+  incomingMeta._from_id   = from_user_id;
+});
+
+// ── Answer from receiver ──────────────────────────────────────────────────
+socket.on("transfer_answer", async ({ answer }) => {
+  if (!peerConn) return;
+  await peerConn.setRemoteDescription(new RTCSessionDescription(answer));
+  setStatus("Verbonden! Bezig met versturen…");
+});
+
+socket.on("transfer_declined", ({ by }) => {
+  setStatus(`❌ ${by} heeft het bestand geweigerd.`);
+  cleanupSender();
+});
+
+// ── ICE candidates ────────────────────────────────────────────────────────
+socket.on("ice_candidate", async ({ candidate, from_user_id }) => {
+  const conn = peerConn;
+  if (conn && candidate) {
+    try { await conn.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {}
+  }
+});
+
+socket.on("transfer_done", ({ from_username, file_name }) => {
+  console.log("Transfer done confirmed");
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// File selection
+// ─────────────────────────────────────────────────────────────────────────────
+const dropZone    = document.getElementById("dropZone");
+const fileInput   = document.getElementById("fileInput");
+const fileInfo    = document.getElementById("fileInfo");
+const renameRow   = document.getElementById("renameRow");
+const encRow      = document.getElementById("encRow");
+const dropInner   = document.getElementById("dropInner");
+
+dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("drop-zone--over"); });
+dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drop-zone--over"));
+dropZone.addEventListener("drop", e => {
+  e.preventDefault();
+  dropZone.classList.remove("drop-zone--over");
+  if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener("change", () => { if (fileInput.files[0]) setFile(fileInput.files[0]); });
+document.getElementById("clearFile").addEventListener("click", clearFile);
+
+function setFile(f) {
+  selectedFile = f;
+  document.getElementById("fileDisplayName").textContent = f.name;
+  document.getElementById("fileSize").textContent = fmtSize(f.size);
+  document.getElementById("fileIcon").textContent = fileEmoji(f.name);
+  document.getElementById("renameInput").value = f.name;
+  dropInner.style.display = "none";
+  fileInfo.style.display = "flex";
+  renameRow.style.display = "block";
+  encRow.style.display    = "block";
+  updateSendBtn();
+}
+
+function clearFile() {
+  selectedFile = null;
+  fileInput.value = "";
+  dropInner.style.display = "flex";
+  fileInfo.style.display  = "none";
+  renameRow.style.display = "none";
+  encRow.style.display    = "none";
+  updateSendBtn();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Encryption toggle UI
+// ─────────────────────────────────────────────────────────────────────────────
+let encEnabled = true;
+const encToggle = document.getElementById("encToggle");
+const encTrack  = document.getElementById("encTrack");
+const encThumb  = document.getElementById("encThumb");
+const encLbl    = document.getElementById("encLabel");
+
+encToggle.addEventListener("change", () => {
+  encEnabled = encToggle.checked;
+  if (encEnabled) {
+    encTrack.style.background = "#7c3aed";
+    encThumb.style.transform  = "translateX(20px)";
+    encThumb.style.background = "white";
+    encLbl.textContent = "🔒 Extra versleuteling aan";
+  } else {
+    encTrack.style.background = "#3a006f";
+    encThumb.style.transform  = "translateX(0)";
+    encThumb.style.background = "#888";
+    encLbl.textContent = "🔓 Extra versleuteling uit (sneller)";
+  }
+});
+// Init visual
+encTrack.style.background = "#7c3aed";
+encThumb.style.transform  = "translateX(20px)";
+encThumb.style.background = "white";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Recipient search
+// ─────────────────────────────────────────────────────────────────────────────
+const recipientSearch   = document.getElementById("recipientSearch");
+const recipientDropdown = document.getElementById("recipientDropdown");
+const recipientChosen   = document.getElementById("recipientChosen");
+let searchTimer = null;
+
+recipientSearch.addEventListener("input", () => {
+  clearTimeout(searchTimer);
+  const q = recipientSearch.value.trim();
+  if (!q) { recipientDropdown.innerHTML = ""; recipientDropdown.style.display = "none"; return; }
+  searchTimer = setTimeout(() => doSearch(q), 200);
+});
+
+async function doSearch(q) {
+  const res  = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`);
+  const list = await res.json();
+  if (!list.length) { recipientDropdown.innerHTML = "<div class='rdrop-empty'>Geen gebruikers gevonden</div>"; recipientDropdown.style.display = "block"; return; }
+  recipientDropdown.innerHTML = list.map(u =>
+    `<div class="rdrop-item" data-id="${u.id}" data-name="${u.username}">
+       <div class="rdrop-avatar">${u.username[0].toUpperCase()}</div>
+       <div>
+         <div class="rdrop-name">${u.username}</div>
+         ${u.location ? `<div class="rdrop-meta">📍 ${u.location}</div>` : ""}
+       </div>
+     </div>`
+  ).join("");
+  recipientDropdown.style.display = "block";
+  recipientDropdown.querySelectorAll(".rdrop-item").forEach(el => {
+    el.addEventListener("click", () => selectRecipient(el.dataset.id, el.dataset.name));
+  });
+}
+
+// Quick-friend buttons
+document.querySelectorAll(".quick-friend-btn").forEach(btn => {
+  btn.addEventListener("click", () => selectRecipient(btn.dataset.id, btn.dataset.name));
+});
+
+function selectRecipient(id, name) {
+  recipientId   = parseInt(id);
+  recipientName = name;
+  recipientDropdown.style.display = "none";
+  recipientSearch.style.display   = "none";
+  document.querySelector(".quick-friends") && (document.querySelector(".quick-friends").style.display = "none");
+  document.getElementById("recipientCard").innerHTML =
+    `<div class="rdrop-avatar" style="width:44px;height:44px;font-size:1.2rem;">${name[0].toUpperCase()}</div>
+     <div style="margin-left:12px;"><div style="font-weight:700;color:white;">${name}</div></div>`;
+  recipientChosen.style.display = "flex";
+  updateSendBtn();
+}
+
+document.getElementById("clearRecipient").addEventListener("click", () => {
+  recipientId = null; recipientName = null;
+  recipientSearch.style.display = "";
+  recipientSearch.value = "";
+  document.querySelector(".quick-friends") && (document.querySelector(".quick-friends").style.display = "");
+  recipientChosen.style.display = "none";
+  updateSendBtn();
+});
+
+function updateSendBtn() {
+  document.getElementById("sendBtn").disabled = !(selectedFile && recipientId);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WebRTC – Sender side
+// ─────────────────────────────────────────────────────────────────────────────
+document.getElementById("sendBtn").addEventListener("click", startTransfer);
+
+async function startTransfer() {
+  if (!selectedFile || !recipientId) return;
+
+  document.getElementById("progressArea").style.display = "block";
+  document.getElementById("sendBtn").disabled = true;
+  setStatus("Verbinding opzetten…");
+
+  const fileName   = document.getElementById("renameInput").value.trim() || selectedFile.name;
+  const encrypted  = encEnabled;
+
+  peerConn = createPeerConn(recipientId, true);
+
+  // Create data channel
+  dataChannel = peerConn.createDataChannel("p2p-file", { ordered: true });
+  dataChannel.binaryType = "arraybuffer";
+
+  dataChannel.onopen = () => {
+    setStatus("Verbonden! Versturen…");
+    sendFile(fileName, encrypted);
+  };
+  dataChannel.onerror = e => setStatus("❌ Fout: " + e.message);
+
+  const offer = await peerConn.createOffer();
+  await peerConn.setLocalDescription(offer);
+
+  socket.emit("transfer_offer", {
+    to_user_id: recipientId,
+    offer:      peerConn.localDescription,
+    file_meta:  {
+      name:      fileName,
+      size:      selectedFile.size,
+      type:      selectedFile.type,
+      encrypted: encrypted,
+    }
+  });
+}
+
+async function sendFile(fileName, encrypted) {
+  const reader     = new FileReader();
+  let offset       = 0;
+  transferStart    = Date.now();
+  lastBytes        = 0;
+  lastTime         = Date.now();
+
+  // If extra encryption: derive AES key from a random 32-byte key, send key in metadata
+  let aesKey = null;
+  if (encrypted) {
+    const rawKey = crypto.getRandomValues(new Uint8Array(32));
+    aesKey = await crypto.subtle.importKey("raw", rawKey, {name: "AES-GCM"}, false, ["encrypt"]);
+    // Send key as first message (JSON)
+    dataChannel.send(JSON.stringify({type:"key", key: Array.from(rawKey)}));
+  } else {
+    dataChannel.send(JSON.stringify({type:"key", key: null}));
+  }
+
+  async function readSlice(o) {
+    const slice = selectedFile.slice(o, o + CHUNK);
+    const buf   = await slice.arrayBuffer();
+    let data    = buf;
+    if (encrypted && aesKey) {
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const enc = await crypto.subtle.encrypt({name:"AES-GCM", iv}, aesKey, buf);
+      // Prepend 12-byte IV
+      const out = new Uint8Array(12 + enc.byteLength);
+      out.set(iv, 0);
+      out.set(new Uint8Array(enc), 12);
+      data = out.buffer;
+    }
+    dataChannel.send(data);
+    offset += CHUNK;
+    updateSendProgress(offset);
+    if (offset < selectedFile.size) {
+      // Small yield to avoid blocking UI
+      setTimeout(() => readSlice(offset), 0);
+    } else {
+      // Signal end
+      dataChannel.send(JSON.stringify({type:"done", name: fileName}));
+      setStatus("✅ Bestand verstuurd!");
+      socket.emit("transfer_complete", { to_user_id: recipientId, file_name: fileName });
+    }
+  }
+  readSlice(0);
+}
+
+function updateSendProgress(sent) {
+  const total = selectedFile.size;
+  const pct   = Math.min(100, Math.round((sent / total) * 100));
+  document.getElementById("progressFill").style.width = pct + "%";
+  document.getElementById("progressPct").textContent  = pct + "%";
+
+  const now     = Date.now();
+  const elapsed = (now - lastTime) / 1000;
+  if (elapsed > 0.5) {
+    const bps   = (sent - lastBytes) / elapsed;
+    const remaining = (total - sent) / bps;
+    document.getElementById("progressSpeed").textContent = fmtSpeed(bps);
+    document.getElementById("progressEta").textContent   = sent < total ? "ETA: " + fmtTime(remaining) : "";
+    lastBytes = sent; lastTime = now;
+  }
+}
+
+function cleanupSender() {
+  if (peerConn) { peerConn.close(); peerConn = null; }
+  dataChannel = null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WebRTC – Receiver side
+// ─────────────────────────────────────────────────────────────────────────────
+document.getElementById("acceptBtn").addEventListener("click", acceptTransfer);
+document.getElementById("declineBtn").addEventListener("click", declineTransfer);
+
+async function acceptTransfer() {
+  document.getElementById("incomingModal").style.display = "none";
+  document.getElementById("receiveModal").style.display  = "flex";
+  document.getElementById("receiveDesc").textContent =
+    `Ontvangen: "${incomingMeta.name}" (${fmtSize(incomingMeta.size)})`;
+
+  peerConn = createPeerConn(incomingMeta._from_id, false);
+
+  peerConn.ondatachannel = ({ channel }) => {
+    channel.binaryType = "arraybuffer";
+    receiveBuffer = []; receiveSize = 0; transferStart = Date.now(); lastTime = Date.now(); lastBytes = 0;
+    let aesKey = null;
+    let keyReceived = false;
+
+    channel.onmessage = async ({ data }) => {
+      // First message is the key JSON
+      if (!keyReceived) {
+        const meta = JSON.parse(data);
+        keyReceived = true;
+        if (meta.key) {
+          const raw = new Uint8Array(meta.key);
+          aesKey = await crypto.subtle.importKey("raw", raw, {name:"AES-GCM"}, false, ["decrypt"]);
+        }
+        return;
+      }
+      // Check for done signal
+      if (typeof data === "string") {
+        const msg = JSON.parse(data);
+        if (msg.type === "done") {
+          assembleFile(aesKey, msg.name);
+        }
+        return;
+      }
+      receiveBuffer.push(data);
+      receiveSize += data.byteLength;
+      updateReceiveProgress();
+    };
+  };
+
+  await peerConn.setRemoteDescription(new RTCSessionDescription(incomingMeta._offer));
+  const answer = await peerConn.createAnswer();
+  await peerConn.setLocalDescription(answer);
+
+  socket.emit("transfer_answer", {
+    to_user_id: incomingMeta._from_id,
+    answer: peerConn.localDescription,
+  });
+}
+
+async function assembleFile(aesKey, fileName) {
+  let chunks = receiveBuffer;
+  let blobs;
+  if (aesKey) {
+    // Decrypt each chunk
+    blobs = await Promise.all(chunks.map(async buf => {
+      const iv  = buf.slice(0, 12);
+      const enc = buf.slice(12);
+      const dec = await crypto.subtle.decrypt({name:"AES-GCM", iv: new Uint8Array(iv)}, aesKey, enc);
+      return dec;
+    }));
+  } else {
+    blobs = chunks;
+  }
+  const blob = new Blob(blobs, { type: incomingMeta.type || "application/octet-stream" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = fileName || incomingMeta.name;
+  a.click();
+  URL.revokeObjectURL(url);
+  document.getElementById("receiveDesc").textContent = `✅ "${fileName}" ontvangen!`;
+}
+
+function updateReceiveProgress() {
+  const total = incomingMeta.size;
+  const pct   = Math.min(100, Math.round((receiveSize / total) * 100));
+  document.getElementById("receiveProgressFill").style.width = pct + "%";
+  document.getElementById("receivePct").textContent = pct + "%";
+
+  const now     = Date.now();
+  const elapsed = (now - lastTime) / 1000;
+  if (elapsed > 0.5) {
+    const bps = (receiveSize - lastBytes) / elapsed;
+    document.getElementById("receiveSpeed").textContent = fmtSpeed(bps);
+    lastBytes = receiveSize; lastTime = now;
+  }
+}
+
+function declineTransfer() {
+  document.getElementById("incomingModal").style.display = "none";
+  socket.emit("transfer_decline", { to_user_id: incomingMeta._from_id });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WebRTC helpers
+// ─────────────────────────────────────────────────────────────────────────────
+function createPeerConn(otherId, isSender) {
+  const config = {
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" },
+    ]
+  };
+  const pc = new RTCPeerConnection(config);
+
+  pc.onicecandidate = ({ candidate }) => {
+    if (candidate) {
+      socket.emit("ice_candidate", { to_user_id: otherId, candidate });
+    }
+  };
+
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === "failed") {
+      setStatus("❌ Verbinding mislukt. Probeer opnieuw.");
+    }
+  };
+
+  return pc;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Utility
+// ─────────────────────────────────────────────────────────────────────────────
+function setStatus(msg) {
+  document.getElementById("progressStatus").textContent = msg;
+}
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024**2) return (bytes/1024).toFixed(1) + " KB";
+  if (bytes < 1024**3) return (bytes/1024**2).toFixed(1) + " MB";
+  return (bytes/1024**3).toFixed(2) + " GB";
+}
+function fmtSpeed(bps) {
+  return fmtSize(bps) + "/s";
+}
+function fmtTime(s) {
+  if (s < 60) return Math.round(s) + "s";
+  return Math.floor(s/60) + "m " + Math.round(s%60) + "s";
+}
+function fileEmoji(name) {
+  const ext = name.split(".").pop().toLowerCase();
+  const map = {
+    pdf:"📄", doc:"📝", docx:"📝", xls:"📊", xlsx:"📊", ppt:"📽", pptx:"📽",
+    jpg:"🖼", jpeg:"🖼", png:"🖼", gif:"🖼", webp:"🖼", svg:"🖼",
+    mp4:"🎬", mov:"🎬", avi:"🎬", mkv:"🎬",
+    mp3:"🎵", wav:"🎵", flac:"🎵",
+    zip:"📦", rar:"📦", "7z":"📦", tar:"📦",
+    exe:"⚙", dmg:"⚙", apk:"⚙",
+    txt:"📃", md:"📃", json:"📃", csv:"📃",
+  };
+  return map[ext] || "📁";
+}
+</script>
 {% endblock %}
