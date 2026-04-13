@@ -56,9 +56,9 @@ def create_app() -> Flask:
     return app
 
 
-# 
+# ---------------------------------------------------------------------------
 # Forms
-# 
+# ---------------------------------------------------------------------------
 
 class LoginForm(FlaskForm):
     username = StringField("Gebruikersnaam", validators=[DataRequired()])
@@ -69,7 +69,7 @@ class LoginForm(FlaskForm):
 
 class RegisterForm(FlaskForm):
     username = StringField("Gebruikersnaam", validators=[DataRequired(), Length(min=3, max=30)])
-    email    = StringField("Email",         validators=[DataRequired(), Email()])
+    email    = StringField("E-mail",         validators=[DataRequired(), Email()])
     password = PasswordField("Wachtwoord",   validators=[DataRequired(), Length(min=6)])
     confirm  = PasswordField("Herhaal wachtwoord", validators=[DataRequired(), EqualTo("password", message="Wachtwoorden komen niet overeen.")])
     submit   = SubmitField("Registreren")
@@ -80,12 +80,12 @@ class RegisterForm(FlaskForm):
 
     def validate_email(self, field):
         if User.query.filter_by(email=field.data).first():
-            raise ValidationError("Emailadres is al geregistreerd.")
+            raise ValidationError("E-mailadres is al geregistreerd.")
 
 
 class EditProfileForm(FlaskForm):
     username       = StringField("Gebruikersnaam", validators=[DataRequired(), Length(min=3, max=30)])
-    email          = StringField("Email",         validators=[DataRequired(), Email()])
+    email          = StringField("E-mail",         validators=[DataRequired(), Email()])
     age            = IntegerField("Leeftijd",       validators=[Optional(), NumberRange(min=1, max=120)])
     location       = StringField("Locatie",         validators=[Optional(), Length(max=100)])
     is_public      = BooleanField("Profiel openbaar")
@@ -104,20 +104,20 @@ class EditProfileForm(FlaskForm):
     def validate_email(self, field):
         user = User.query.filter_by(email=field.data).first()
         if user and user.id != self._current_user_id:
-            raise ValidationError("Emailadres is al geregistreerd.")
+            raise ValidationError("E-mailadres is al geregistreerd.")
 
 
-# 
+# ---------------------------------------------------------------------------
 # Helper
-# 
+# ---------------------------------------------------------------------------
 
 def add_notification(user_id: int, body: str, link: str = None):
     db.session.add(Notification(user_id=user_id, body=body, link=link))
 
 
-# 
+# ---------------------------------------------------------------------------
 # Routes
-# 
+# ---------------------------------------------------------------------------
 
 def register_routes(app: Flask) -> None:
 
@@ -129,7 +129,7 @@ def register_routes(app: Flask) -> None:
         all_users = User.query.filter(User.id != current_user.id).order_by(User.username).all()
         return render_template("index.html", friends=friends, all_users=all_users)
 
-    # Auth 
+    # ── Auth ────────────────────────────────────────────────────────────────
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
@@ -167,7 +167,7 @@ def register_routes(app: Flask) -> None:
         logout_user()
         return render_template("logout.html")
 
-    # acc
+    # ── Account ─────────────────────────────────────────────────────────────
 
     @app.route("/account", methods=["GET", "POST"])
     @login_required
@@ -216,7 +216,7 @@ def register_routes(app: Flask) -> None:
             db.session.commit()
         return redirect(url_for("account"))
 
-    # connecties / profiles
+    # ── Connecties ───────────────────────────────────────────────────────────
 
     @app.route("/connecties")
     @login_required
@@ -248,7 +248,7 @@ def register_routes(app: Flask) -> None:
         return render_template("profile.html", user=user, status=status,
                                mutual_friends=mutual_friends, fof=fof)
 
-    # actions
+    # ── Friend actions ───────────────────────────────────────────────────────
 
     @app.route("/friend/add/<int:user_id>", methods=["POST"])
     @login_required
@@ -258,9 +258,7 @@ def register_routes(app: Flask) -> None:
             existing = Friendship.query.filter_by(from_id=current_user.id, to_id=user_id).first()
             if not existing:
                 db.session.add(Friendship(from_id=current_user.id, to_id=user_id))
-                add_notification(user_id,
-                    f"🙋 {current_user.username} heeft je een vriendschapsverzoek gestuurd.",
-                    link=f"/profile/{current_user.id}")
+                # No notification here — the pending badge on Connecties already shows this
                 db.session.commit()
         return redirect(request.referrer or url_for("connecties"))
 
@@ -308,7 +306,7 @@ def register_routes(app: Flask) -> None:
     def friends():
         return redirect(url_for("connecties"))
 
-    # relay messages :)
+    # ── Messages + notifications ──────────────────────────────────────────────
 
     @app.route("/messages")
     @login_required
@@ -347,6 +345,18 @@ def register_routes(app: Flask) -> None:
             if body:
                 db.session.add(Message(sender_id=current_user.id, receiver_id=partner_id, body=body))
                 db.session.commit()
+                # Push live update to receiver
+                socketio.emit("new_message", {
+                    "from_user_id": current_user.id,
+                    "from_username": current_user.username,
+                    "body": body,
+                    "partner_id": current_user.id,
+                }, to=f"user_{partner_id}")
+                # Also push to sender's other tabs
+                socketio.emit("new_message_sent", {
+                    "body": body,
+                    "partner_id": partner_id,
+                }, to=f"user_{current_user.id}")
             return redirect(url_for("conversation", partner_id=partner_id))
         Message.query.filter_by(sender_id=partner_id, receiver_id=current_user.id, read=False).update({"read": True})
         db.session.commit()
@@ -364,9 +374,16 @@ def register_routes(app: Flask) -> None:
         if body:
             db.session.add(Message(sender_id=current_user.id, receiver_id=user_id, body=body))
             db.session.commit()
+            socketio.emit("new_message", {
+                "from_user_id": current_user.id,
+                "from_username": current_user.username,
+                "body": body,
+                "partner_id": current_user.id,
+            }, to=f"user_{user_id}")
         return redirect(url_for("conversation", partner_id=user_id))
 
-    # file 
+    # ── File transfer API ─────────────────────────────────────────────────────
+
     @app.route("/api/users/search")
     @login_required
     def api_user_search():
@@ -381,13 +398,17 @@ def register_routes(app: Flask) -> None:
                          "avatar": u.avatar, "location": u.location} for u in users])
 
 
-
+# ---------------------------------------------------------------------------
+# WebRTC Signaling via SocketIO
+# ---------------------------------------------------------------------------
+# Room naming: "transfer_{min_id}_{max_id}" ensures both users join the same room.
+# Signal flow:
 #   sender  → offer       → server → receiver
 #   receiver → answer     → server → sender
+#   both    ↔ ice-candidate → server → other peer
+# ---------------------------------------------------------------------------
 
-
-
-#  recent connection
+# Maps user_id → socket sid (most recent connection)
 user_sockets: dict[int, str] = {}
 
 
@@ -465,7 +486,7 @@ def register_socket_events(app: Flask) -> None:
         }, to=f"user_{data['to_user_id']}")
 
 
-# 
+# ---------------------------------------------------------------------------
 app = create_app()
 
 if __name__ == "__main__":

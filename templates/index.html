@@ -131,7 +131,6 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
 <script>
 // ─────────────────────────────────────────────────────────────────────────────
 // State
@@ -143,34 +142,40 @@ let recipientName  = null;
 let peerConn       = null;
 let dataChannel    = null;
 let incomingMeta   = null;
-let incomingFrom   = null;
 let receiveBuffer  = [];
 let receiveSize    = 0;
 let transferStart  = null;
 let lastBytes      = 0;
 let lastTime       = null;
 
-const CHUNK = 65536; // 64 KB chunks — browser DataChannel sweet spot
+const CHUNK = 65536;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SocketIO
-// ─────────────────────────────────────────────────────────────────────────────
-const socket = io();
+// Use the global socket from base.html
+const socket = _socket;
 
-socket.on("connect", () => console.log("Socket connected:", socket.id));
+// ── Check if we arrived here from another page with a pending transfer ────
+window.addEventListener("load", () => {
+  const pending = sessionStorage.getItem("pendingTransfer");
+  if (pending) {
+    sessionStorage.removeItem("pendingTransfer");
+    const { from_user_id, from_username, offer, file_meta } = JSON.parse(pending);
+    showIncomingModal(from_user_id, from_username, offer, file_meta);
+  }
+});
 
-// ── Incoming transfer request ─────────────────────────────────────────────
+// ── Incoming transfer request (when already on this page) ─────────────────
 socket.on("transfer_incoming", ({ from_user_id, from_username, offer, file_meta }) => {
-  incomingMeta = file_meta;
-  incomingFrom = from_user_id;
+  showIncomingModal(from_user_id, from_username, offer, file_meta);
+});
+
+function showIncomingModal(from_user_id, from_username, offer, file_meta) {
+  incomingMeta             = { ...file_meta, _offer: offer, _from_id: from_user_id };
   document.getElementById("incomingDesc").textContent =
     `${from_username} wil "${file_meta.name}" (${fmtSize(file_meta.size)}) sturen.`;
   document.getElementById("incomingModal").style.display = "flex";
-
-  // Store offer for later
-  incomingMeta._offer     = offer;
-  incomingMeta._from_id   = from_user_id;
-});
+  // Hide the global toast if it was showing
+  document.getElementById("globalToast").style.display = "none";
+}
 
 // ── Answer from receiver ──────────────────────────────────────────────────
 socket.on("transfer_answer", async ({ answer }) => {
@@ -184,16 +189,8 @@ socket.on("transfer_declined", ({ by }) => {
   cleanupSender();
 });
 
-// ── ICE candidates ────────────────────────────────────────────────────────
-socket.on("ice_candidate", async ({ candidate, from_user_id }) => {
-  const conn = peerConn;
-  if (conn && candidate) {
-    try { await conn.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {}
-  }
-});
-
 socket.on("transfer_done", ({ from_username, file_name }) => {
-  console.log("Transfer done confirmed");
+  console.log("Transfer done:", file_name);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -344,33 +341,43 @@ async function startTransfer() {
   document.getElementById("sendBtn").disabled = true;
   setStatus("Verbinding opzetten…");
 
-  const fileName   = document.getElementById("renameInput").value.trim() || selectedFile.name;
-  const encrypted  = encEnabled;
+  const fileName  = document.getElementById("renameInput").value.trim() || selectedFile.name;
+  const encrypted = encEnabled;
 
   peerConn = createPeerConn(recipientId, true);
 
-  // Create data channel
+  // Create data channel BEFORE creating the offer
   dataChannel = peerConn.createDataChannel("p2p-file", { ordered: true });
   dataChannel.binaryType = "arraybuffer";
+  dataChannel.onopen  = () => { setStatus("Verbonden! Versturen…"); sendFile(fileName, encrypted); };
+  dataChannel.onerror = e  => setStatus("❌ Kanaal fout: " + (e.message || e));
 
-  dataChannel.onopen = () => {
-    setStatus("Verbonden! Versturen…");
-    sendFile(fileName, encrypted);
-  };
-  dataChannel.onerror = e => setStatus("❌ Fout: " + e.message);
-
+  // Create offer
   const offer = await peerConn.createOffer();
   await peerConn.setLocalDescription(offer);
 
+  // Wait for ICE gathering to complete so we send a complete SDP (trickle-free)
+  await waitForIce(peerConn);
+
   socket.emit("transfer_offer", {
     to_user_id: recipientId,
-    offer:      peerConn.localDescription,
-    file_meta:  {
-      name:      fileName,
-      size:      selectedFile.size,
-      type:      selectedFile.type,
-      encrypted: encrypted,
-    }
+    offer:      peerConn.localDescription,   // now contains all candidates
+    file_meta:  { name: fileName, size: selectedFile.size, type: selectedFile.type, encrypted },
+  });
+  setStatus("Wachten op ontvanger…");
+}
+
+function waitForIce(pc) {
+  return new Promise(resolve => {
+    if (pc.iceGatheringState === "complete") { resolve(); return; }
+    pc.addEventListener("icegatheringstatechange", function handler() {
+      if (pc.iceGatheringState === "complete") {
+        pc.removeEventListener("icegatheringstatechange", handler);
+        resolve();
+      }
+    });
+    // Fallback: resolve after 4s regardless
+    setTimeout(resolve, 4000);
   });
 }
 
@@ -491,6 +498,9 @@ async function acceptTransfer() {
   await peerConn.setRemoteDescription(new RTCSessionDescription(incomingMeta._offer));
   const answer = await peerConn.createAnswer();
   await peerConn.setLocalDescription(answer);
+
+  // Wait for ICE gathering before sending complete answer SDP
+  await waitForIce(peerConn);
 
   socket.emit("transfer_answer", {
     to_user_id: incomingMeta._from_id,

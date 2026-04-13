@@ -17,31 +17,71 @@
             </button>
             <div class="dropdown-content">
                 {% if current_user.is_authenticated %}
-                    <a href="/connecties">Social</a>
+                    <a href="/connecties" style="position:relative;">Connecties
                         {% set pending_count = current_user.pending_received()|length %}
                         {% if pending_count > 0 %}
                             <span class="nav-badge">{{ pending_count }}</span>
                         {% endif %}
                     </a>
-                    <a href="/messages">Berichten
+                    <a href="/messages" style="position:relative;">Berichten
                         {% set inbox = current_user.total_inbox_count() %}
                         {% if inbox > 0 %}
-                            <span class="nav-badge">{{ inbox }}</span>
+                            <span class="nav-badge" id="badge-berichten">{{ inbox }}</span>
+                        {% else %}
+                            <span class="nav-badge" id="badge-berichten" style="display:none;">0</span>
                         {% endif %}
                     </a>
                     <a href="/account">Account</a>
                     <a href="/logout">Uitloggen</a>
                 {% else %}
-                    <a href="/connecties">Social</a>
+                    <a href="/connecties">Connecties</a>
                     <a href="/login">Inloggen</a>
                     <a href="/register">Registreren</a>
                 {% endif %}
             </div>
         </div>
     </header>
+
+    <!-- Toast for messages received on any page -->
+    <div id="globalToast" style="display:none;" class="global-toast">
+        <span id="globalToastMsg"></span>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+            <a id="globalToastLink" href="/messages" class="btn btn--small btn--green">Bekijk →</a>
+            <button id="globalToastClose" class="btn btn--small btn--outline">✕</button>
+        </div>
+    </div>
+
     <main>
     {% block content %}
     {% endblock %}
     </main>
+
+{% if current_user.is_authenticated %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+// Global socket — only used for message toasts and badge updates on non-chat pages
+// index.html creates its own separate socket for file transfer
+const _globalSocket = io();
+
+_globalSocket.on("new_message", ({ from_username, body }) => {
+    // Update badge
+    const badge = document.getElementById("badge-berichten");
+    if (badge) {
+        const cur = parseInt(badge.textContent) || 0;
+        badge.textContent = cur + 1;
+        badge.style.display = "";
+    }
+    // Show toast only if not already in a conversation
+    if (!window.location.pathname.startsWith("/messages/")) {
+        const toast = document.getElementById("globalToast");
+        document.getElementById("globalToastMsg").textContent =
+            `💬 ${from_username}: ${body.slice(0, 70)}${body.length > 70 ? "…" : ""}`;
+        toast.style.display = "flex";
+        document.getElementById("globalToastClose").onclick = () => { toast.style.display = "none"; };
+        setTimeout(() => { toast.style.display = "none"; }, 6000);
+    }
+});
+</script>
+{% endif %}
 </body>
 </html>

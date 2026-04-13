@@ -20,18 +20,88 @@
         </div>
         {% endfor %}
         {% if not thread %}
-            <p class="muted-center">Begin het gesprek!</p>
+            <p class="muted-center" id="emptyMsg">Begin het gesprek!</p>
         {% endif %}
     </div>
 
-    <form method="POST" action="/messages/{{ partner.id }}" class="chat-form">
-        <textarea name="body" class="chat-input" placeholder="Schrijf een bericht…" rows="2" required></textarea>
+    <form id="chatForm" class="chat-form">
+        <textarea name="body" id="chatInput" class="chat-input" placeholder="Schrijf een bericht…" rows="2" required></textarea>
         <button type="submit" class="btn">Versturen</button>
     </form>
 </div>
 
 <script>
-    const thread = document.getElementById('thread');
-    thread.scrollTop = thread.scrollHeight;
+const PARTNER_ID = {{ partner.id }};
+const MY_ID      = {{ current_user.id }};
+const thread     = document.getElementById("thread");
+const chatInput  = document.getElementById("chatInput");
+
+// ── Scroll to bottom ─────────────────────────────────────────────────────
+function scrollBottom() { thread.scrollTop = thread.scrollHeight; }
+scrollBottom();
+
+// ── Add bubble to thread ─────────────────────────────────────────────────
+function addBubble(body, mine, timeStr) {
+    const empty = document.getElementById("emptyMsg");
+    if (empty) empty.remove();
+
+    const div = document.createElement("div");
+    div.className = "chat-bubble " + (mine ? "chat-bubble--mine" : "chat-bubble--theirs");
+    div.innerHTML = `<p>${escHtml(body)}</p><span class="chat-bubble__time">${timeStr}</span>`;
+    thread.appendChild(div);
+    scrollBottom();
+}
+
+function escHtml(s) {
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+function nowStr() {
+    const d = new Date();
+    return String(d.getDate()).padStart(2,"0") + "-" +
+           String(d.getMonth()+1).padStart(2,"0") + " " +
+           String(d.getHours()).padStart(2,"0") + ":" +
+           String(d.getMinutes()).padStart(2,"0");
+}
+
+// ── Send message via fetch (no page reload) ───────────────────────────────
+document.getElementById("chatForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const body = chatInput.value.trim();
+    if (!body) return;
+    chatInput.value = "";
+    chatInput.focus();
+
+    // Optimistically add bubble immediately
+    addBubble(body, true, nowStr());
+
+    await fetch(`/messages/${PARTNER_ID}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "body=" + encodeURIComponent(body),
+    });
+});
+
+// ── Enter to send (Shift+Enter for newline) ───────────────────────────────
+chatInput.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        document.getElementById("chatForm").dispatchEvent(new Event("submit"));
+    }
+});
+
+// ── Receive live messages via SocketIO ────────────────────────────────────
+_socket.on("new_message", ({ from_user_id, body, partner_id }) => {
+    if (from_user_id === PARTNER_ID) {
+        addBubble(body, false, nowStr());
+    }
+});
+
+// ── Also reflect own messages sent from another tab ───────────────────────
+_socket.on("new_message_sent", ({ body, partner_id }) => {
+    if (partner_id === PARTNER_ID) {
+        // Already added optimistically in this tab, skip
+    }
+});
 </script>
 {% endblock %}
