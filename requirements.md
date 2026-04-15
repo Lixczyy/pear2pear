@@ -1,10 +1,13 @@
 Funtions:
-1. Fix padding
-2. Speed select
-3. accept button only redirects to main page not download file
-4. 📥 Ontvangen…
-✅ "test" opgeslagen! isnt dismissable
-5. when selecting file it does it twice
+1. send normal unzipped maps
+2. make dismissable
+3. speed not showing every page
+4. speed not fast
+5. and progress not synced for some fucking shitty reason
+6. large files fail
+7. message box should be fixed to bottom with padding
+8. + connctie --> voeg toe
+
 
 
 aslasdflkjhseljkhrlkjebnrselrkjhserlsdkfjh

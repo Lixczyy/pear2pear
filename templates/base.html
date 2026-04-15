@@ -42,13 +42,38 @@
         </div>
     </header>
 
-    <!-- Toast for messages received on any page -->
+    <!-- Toast for messages AND incoming file transfers on any page -->
     <div id="globalToast" style="display:none;" class="global-toast">
         <span id="globalToastMsg"></span>
         <div style="display:flex;gap:8px;margin-top:10px;">
             <a id="globalToastLink" href="/messages" class="btn btn--small btn--green">Bekijk →</a>
             <button id="globalToastClose" class="btn btn--small btn--outline">✕</button>
         </div>
+    </div>
+
+    <!-- Inline receive modal available on every page for file transfers -->
+    <div class="modal-overlay" id="globalIncomingModal" style="display:none">
+      <div class="modal">
+        <h3>📥 Inkomend bestand</h3>
+        <p id="globalIncomingDesc"></p>
+        <div class="modal-btns">
+          <button class="btn btn--green" id="globalAcceptBtn">Accepteren</button>
+          <button class="btn btn--outline" id="globalDeclineBtn">Weigeren</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-overlay" id="globalReceiveModal" style="display:none">
+      <div class="modal">
+        <h3>📥 Ontvangen…</h3>
+        <p id="globalReceiveDesc"></p>
+        <div class="progress-bar-wrap" style="margin:12px 0">
+          <div class="progress-bar-fill" id="globalReceiveFill"></div>
+        </div>
+        <div class="progress-stats"><span id="globalReceivePct">0%</span></div>
+        <div id="globalReceiveClose" style="display:none;margin-top:16px;">
+          <button class="btn" onclick="document.getElementById('globalReceiveModal').style.display='none'">✓ Sluiten</button>
+        </div>
+      </div>
     </div>
 
     <main>
@@ -59,28 +84,122 @@
 {% if current_user.is_authenticated %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
 <script>
-// Global socket — only used for message toasts and badge updates on non-chat pages
-// index.html creates its own separate socket for file transfer
 const _globalSocket = io();
 
+// ── New message: update badge + show toast ────────────────────────────────
 _globalSocket.on("new_message", ({ from_username, body }) => {
-    // Update badge
     const badge = document.getElementById("badge-berichten");
-    if (badge) {
-        const cur = parseInt(badge.textContent) || 0;
-        badge.textContent = cur + 1;
-        badge.style.display = "";
-    }
-    // Show toast only if not already in a conversation
+    if (badge) { badge.textContent = parseInt(badge.textContent||"0")+1; badge.style.display=""; }
     if (!window.location.pathname.startsWith("/messages/")) {
-        const toast = document.getElementById("globalToast");
-        document.getElementById("globalToastMsg").textContent =
-            `💬 ${from_username}: ${body.slice(0, 70)}${body.length > 70 ? "…" : ""}`;
-        toast.style.display = "flex";
-        document.getElementById("globalToastClose").onclick = () => { toast.style.display = "none"; };
-        setTimeout(() => { toast.style.display = "none"; }, 6000);
+        showToast(`💬 ${from_username}: ${body.slice(0,70)}${body.length>70?"…":""}`, "/messages", "Bekijk →");
     }
 });
+
+// ── Incoming file transfer: show accept modal directly on this page ────────
+let _pendingOffer = null;
+let _recvBuffer   = [];
+let _recvSize     = 0;
+let _recvMeta     = null;
+let _recvPeer     = null;
+
+_globalSocket.on("transfer_incoming", ({ from_user_id, from_username, offer, file_meta }) => {
+    // If on the home page, let index.html handle it with its own socket
+    if (window.location.pathname === "/") return;
+    _pendingOffer = { from_user_id, offer };
+    _recvMeta = file_meta;
+    document.getElementById("globalIncomingDesc").textContent =
+        `${from_username} wil "${file_meta.name}" (${_fmtSize(file_meta.size)}) sturen.`;
+    document.getElementById("globalIncomingModal").style.display = "flex";
+});
+
+document.getElementById("globalAcceptBtn").addEventListener("click", async () => {
+    document.getElementById("globalIncomingModal").style.display = "none";
+    document.getElementById("globalReceiveModal").style.display  = "flex";
+    document.getElementById("globalReceiveDesc").textContent =
+        `Ontvangen: "${_recvMeta.name}" (${_fmtSize(_recvMeta.size)})`;
+
+    _recvBuffer = []; _recvSize = 0;
+    _recvPeer = new RTCPeerConnection({ iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+    ]});
+    _recvPeer.onicecandidate = ({ candidate }) => {
+        if (candidate) _globalSocket.emit("ice_candidate", { to_user_id: _pendingOffer.from_user_id, candidate });
+    };
+
+    _recvPeer.ondatachannel = ({ channel }) => {
+        channel.binaryType = "arraybuffer";
+        let aesKey = null, keyDone = false;
+        channel.onmessage = async ({ data }) => {
+            if (!keyDone) {
+                keyDone = true;
+                const m = JSON.parse(data);
+                if (m.key) aesKey = await crypto.subtle.importKey("raw", new Uint8Array(m.key), {name:"AES-GCM"}, false, ["decrypt"]);
+                return;
+            }
+            if (typeof data === "string") {
+                const m = JSON.parse(data);
+                if (m.type === "done") _saveFile(aesKey, m.name);
+                return;
+            }
+            _recvBuffer.push(data);
+            _recvSize += data.byteLength;
+            const pct = Math.min(100, Math.round(_recvSize / _recvMeta.size * 100));
+            document.getElementById("globalReceiveFill").style.width = pct + "%";
+            document.getElementById("globalReceivePct").textContent  = pct + "%";
+        };
+    };
+
+    await _recvPeer.setRemoteDescription(new RTCSessionDescription(_pendingOffer.offer));
+    const answer = await _recvPeer.createAnswer();
+    await _recvPeer.setLocalDescription(answer);
+    await _iceComplete(_recvPeer);
+    _globalSocket.emit("transfer_answer", { to_user_id: _pendingOffer.from_user_id, answer: _recvPeer.localDescription });
+});
+
+document.getElementById("globalDeclineBtn").addEventListener("click", () => {
+    document.getElementById("globalIncomingModal").style.display = "none";
+    _globalSocket.emit("transfer_decline", { to_user_id: _pendingOffer.from_user_id });
+});
+
+async function _saveFile(aesKey, fileName) {
+    const blobs = aesKey
+        ? await Promise.all(_recvBuffer.map(async buf => {
+            return crypto.subtle.decrypt({name:"AES-GCM", iv:new Uint8Array(buf.slice(0,12))}, aesKey, buf.slice(12));
+          }))
+        : _recvBuffer;
+    const blob = new Blob(blobs, { type: _recvMeta.type || "application/octet-stream" });
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: fileName });
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    document.getElementById("globalReceiveDesc").textContent = `✅ "${fileName}" opgeslagen!`;
+    document.getElementById("globalReceiveClose").style.display = "block";
+}
+
+function _iceComplete(pc) {
+    return new Promise(resolve => {
+        if (pc.iceGatheringState === "complete") return resolve();
+        const h = () => { if (pc.iceGatheringState === "complete") { pc.removeEventListener("icegatheringstatechange", h); resolve(); }};
+        pc.addEventListener("icegatheringstatechange", h);
+        setTimeout(resolve, 4000);
+    });
+}
+
+function showToast(msg, link, linkText) {
+    document.getElementById("globalToastMsg").textContent = msg;
+    document.getElementById("globalToastLink").href = link;
+    document.getElementById("globalToastLink").textContent = linkText;
+    document.getElementById("globalToast").style.display = "flex";
+    document.getElementById("globalToastClose").onclick = () => { document.getElementById("globalToast").style.display="none"; };
+    setTimeout(() => { document.getElementById("globalToast").style.display="none"; }, 8000);
+}
+
+function _fmtSize(b) {
+    if (b < 1024) return b+" B";
+    if (b < 1048576) return (b/1024).toFixed(1)+" KB";
+    if (b < 1073741824) return (b/1048576).toFixed(1)+" MB";
+    return (b/1073741824).toFixed(2)+" GB";
+}
 </script>
 {% endif %}
 </body>

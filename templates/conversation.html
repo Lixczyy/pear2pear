@@ -91,14 +91,14 @@ chatInput.addEventListener("keydown", e => {
 });
 
 // ── Receive live messages via SocketIO ────────────────────────────────────
-_socket.on("new_message", ({ from_user_id, body, partner_id }) => {
+_globalSocket.on("new_message", ({ from_user_id, body, partner_id }) => {
     if (from_user_id === PARTNER_ID) {
         addBubble(body, false, nowStr());
     }
 });
 
 // ── Also reflect own messages sent from another tab ───────────────────────
-_socket.on("new_message_sent", ({ body, partner_id }) => {
+_globalSocket.on("new_message_sent", ({ body, partner_id }) => {
     if (partner_id === PARTNER_ID) {
         // Already added optimistically in this tab, skip
     }

@@ -5,8 +5,8 @@
 {% block content %}
 <div class="transfer-page">
 
-  <!-- ═══════════════════════════════ LEFT PANEL ═══════════════════════════ -->
-  <div class="transfer-panel transfer-panel--left">
+  <!-- LEFT PANEL -->
+  <div class="transfer-panel">
     <h2 class="panel-title">📁 Bestand</h2>
 
     <div class="drop-zone" id="dropZone">
@@ -18,14 +18,10 @@
         </svg>
         <p class="drop-zone__text">Sleep een bestand hierheen</p>
         <p class="drop-zone__sub">of</p>
-        <label class="btn">
-          Kies bestand
-          <input type="file" id="fileInput" style="display:none">
-        </label>
+        <label class="btn">Kies bestand<input type="file" id="fileInput" style="display:none"></label>
       </div>
     </div>
 
-    <!-- File info (shown after selection) -->
     <div class="file-info" id="fileInfo" style="display:none">
       <div class="file-info__icon" id="fileIcon">📄</div>
       <div class="file-info__details">
@@ -35,47 +31,44 @@
       <button class="btn btn--outline btn--small" id="clearFile">✕</button>
     </div>
 
-    <!-- Rename -->
-    <div class="rename-row" id="renameRow" style="display:none">
+    <div id="renameRow" style="display:none">
       <label class="field-label">Naam voor ontvanger</label>
       <input type="text" id="renameInput" class="rename-input" placeholder="bestandsnaam.ext">
     </div>
 
-    <!-- Encryption toggle -->
-    <div class="enc-row" id="encRow" style="display:none">
-      <label class="toggle-label" style="gap:10px;cursor:pointer;">
-        <input type="checkbox" id="encToggle" style="display:none" checked>
-        <span class="toggle-track" id="encTrack"><span class="toggle-thumb" id="encThumb"></span></span>
-        <span id="encLabel">🔒 Extra versleuteling aan</span>
-      </label>
-      <p class="enc-hint">WebRTC is altijd versleuteld (DTLS). Extra AES-256 versleuteling voegt veiligheid toe maar kan iets langzamer zijn.</p>
+    <div id="encRow" style="display:none">
+      <div class="toggle-row" style="margin-bottom:6px;">
+        <input type="checkbox" id="encToggle" checked>
+        <label for="encToggle" class="toggle-label">
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          <span id="encLabel">🔒 Extra versleuteling aan</span>
+        </label>
+      </div>
+      <p class="enc-hint">WebRTC gebruikt altijd DTLS. Extra AES-256 versleuteling voegt veiligheid toe maar is iets langzamer.</p>
     </div>
   </div>
 
-  <!-- ═══════════════════════════════ RIGHT PANEL ══════════════════════════ -->
-  <div class="transfer-panel transfer-panel--right">
+  <!-- RIGHT PANEL -->
+  <div class="transfer-panel">
     <h2 class="panel-title">👤 Ontvanger</h2>
 
     <div class="recipient-search">
-      <input type="text" id="recipientSearch" class="recipient-input"
-             placeholder="Zoek gebruiker…" autocomplete="off">
+      <input type="text" id="recipientSearch" class="recipient-input" placeholder="Zoek gebruiker…" autocomplete="off">
       <div class="recipient-dropdown" id="recipientDropdown"></div>
     </div>
 
-    <!-- Selected recipient -->
     <div class="recipient-chosen" id="recipientChosen" style="display:none">
       <div class="recipient-chosen__card" id="recipientCard"></div>
       <button class="btn btn--outline btn--small" id="clearRecipient">Wijzigen</button>
     </div>
 
-    <!-- Friends shortcut -->
     {% if friends %}
-    <div class="quick-friends">
+    <div class="quick-friends" id="quickFriends">
       <p class="quick-friends__label">Connecties</p>
       <div class="quick-friends__list">
         {% for f in friends %}
-        <button class="quick-friend-btn" data-id="{{ f.id }}" data-name="{{ f.username }}" data-avatar="{{ f.avatar or '' }}">
-          {{ avatar(f, size=36) }}
+        <button class="quick-friend-btn" data-id="{{ f.id }}" data-name="{{ f.username }}">
+          {{ avatar(f, size=32) }}
           <span>{{ f.username }}</span>
         </button>
         {% endfor %}
@@ -83,16 +76,10 @@
     </div>
     {% endif %}
 
-    <!-- Send button -->
-    <button class="btn send-btn" id="sendBtn" disabled>
-      <span id="sendBtnLabel">Verstuur bestand</span>
-    </button>
+    <button class="btn send-btn" id="sendBtn" disabled>Verstuur bestand</button>
 
-    <!-- Progress -->
     <div class="progress-area" id="progressArea" style="display:none">
-      <div class="progress-bar-wrap">
-        <div class="progress-bar-fill" id="progressFill"></div>
-      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressFill"></div></div>
       <div class="progress-stats">
         <span id="progressPct">0%</span>
         <span id="progressSpeed"></span>
@@ -101,10 +88,9 @@
       <p class="progress-status" id="progressStatus">Verbinden…</p>
     </div>
   </div>
-
 </div>
 
-<!-- ═══════════════ INCOMING TRANSFER MODAL ═══════════════════════════════ -->
+<!-- INCOMING MODAL -->
 <div class="modal-overlay" id="incomingModal" style="display:none">
   <div class="modal">
     <h3>📥 Inkomend bestand</h3>
@@ -116,7 +102,7 @@
   </div>
 </div>
 
-<!-- ═══════════════ RECEIVE PROGRESS MODAL ════════════════════════════════ -->
+<!-- RECEIVE MODAL -->
 <div class="modal-overlay" id="receiveModal" style="display:none">
   <div class="modal">
     <h3>📥 Ontvangen…</h3>
@@ -128,83 +114,59 @@
       <span id="receivePct">0%</span>
       <span id="receiveSpeed"></span>
     </div>
+    <div class="modal-btns" id="receiveClose" style="display:none;margin-top:16px;">
+      <button class="btn" onclick="document.getElementById('receiveModal').style.display='none'">✓ Sluiten</button>
+    </div>
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
 <script>
-// ─────────────────────────────────────────────────────────────────────────────
-// State
-// ─────────────────────────────────────────────────────────────────────────────
-const ME = {{ current_user.id }};
-let selectedFile   = null;
-let recipientId    = null;
-let recipientName  = null;
-let peerConn       = null;
-let dataChannel    = null;
-let incomingMeta   = null;
-let receiveBuffer  = [];
-let receiveSize    = 0;
-let transferStart  = null;
-let lastBytes      = 0;
-let lastTime       = null;
+(function() {
+"use strict";
 
+// ── State ──────────────────────────────────────────────────────────────────
+let selectedFile  = null;
+let recipientId   = null;
+let peerConn      = null;
+let dataChannel   = null;
+let incomingMeta  = null;
+let receiveBuffer = [];
+let receiveSize   = 0;
+let lastBytes     = 0;
+let lastTime      = null;
 const CHUNK = 65536;
 
-// Use the global socket from base.html
-const socket = _socket;
+// ── Socket ─────────────────────────────────────────────────────────────────
+const socket = io();
 
-// ── Check if we arrived here from another page with a pending transfer ────
-window.addEventListener("load", () => {
-  const pending = sessionStorage.getItem("pendingTransfer");
-  if (pending) {
-    sessionStorage.removeItem("pendingTransfer");
-    const { from_user_id, from_username, offer, file_meta } = JSON.parse(pending);
-    showIncomingModal(from_user_id, from_username, offer, file_meta);
-  }
-});
+socket.on("connect", () => console.log("✓ socket connected"));
+socket.on("connect_error", e => console.warn("socket error:", e.message));
 
-// ── Incoming transfer request (when already on this page) ─────────────────
 socket.on("transfer_incoming", ({ from_user_id, from_username, offer, file_meta }) => {
-  showIncomingModal(from_user_id, from_username, offer, file_meta);
+  incomingMeta = { ...file_meta, _offer: offer, _from_id: from_user_id };
+  document.getElementById("incomingDesc").textContent =
+    `${from_username} wil "${file_meta.name}" (${fmt(file_meta.size)}) sturen.`;
+  document.getElementById("incomingModal").style.display = "flex";
 });
 
-function showIncomingModal(from_user_id, from_username, offer, file_meta) {
-  incomingMeta             = { ...file_meta, _offer: offer, _from_id: from_user_id };
-  document.getElementById("incomingDesc").textContent =
-    `${from_username} wil "${file_meta.name}" (${fmtSize(file_meta.size)}) sturen.`;
-  document.getElementById("incomingModal").style.display = "flex";
-  // Hide the global toast if it was showing
-  document.getElementById("globalToast").style.display = "none";
-}
-
-// ── Answer from receiver ──────────────────────────────────────────────────
 socket.on("transfer_answer", async ({ answer }) => {
   if (!peerConn) return;
   await peerConn.setRemoteDescription(new RTCSessionDescription(answer));
-  setStatus("Verbonden! Bezig met versturen…");
+  status("Verbonden! Bezig met versturen…");
 });
 
 socket.on("transfer_declined", ({ by }) => {
-  setStatus(`❌ ${by} heeft het bestand geweigerd.`);
-  cleanupSender();
+  status("❌ " + by + " heeft het bestand geweigerd.");
+  cleanup();
 });
 
-socket.on("transfer_done", ({ from_username, file_name }) => {
-  console.log("Transfer done:", file_name);
-});
+// ── File selection ─────────────────────────────────────────────────────────
+const dropZone  = document.getElementById("dropZone");
+const fileInput = document.getElementById("fileInput");
 
-// ─────────────────────────────────────────────────────────────────────────────
-// File selection
-// ─────────────────────────────────────────────────────────────────────────────
-const dropZone    = document.getElementById("dropZone");
-const fileInput   = document.getElementById("fileInput");
-const fileInfo    = document.getElementById("fileInfo");
-const renameRow   = document.getElementById("renameRow");
-const encRow      = document.getElementById("encRow");
-const dropInner   = document.getElementById("dropInner");
-
-dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("drop-zone--over"); });
-dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drop-zone--over"));
+dropZone.addEventListener("dragover",  e => { e.preventDefault(); dropZone.classList.add("drop-zone--over"); });
+dropZone.addEventListener("dragleave", ()  => dropZone.classList.remove("drop-zone--over"));
 dropZone.addEventListener("drop", e => {
   e.preventDefault();
   dropZone.classList.remove("drop-zone--over");
@@ -216,400 +178,297 @@ document.getElementById("clearFile").addEventListener("click", clearFile);
 function setFile(f) {
   selectedFile = f;
   document.getElementById("fileDisplayName").textContent = f.name;
-  document.getElementById("fileSize").textContent = fmtSize(f.size);
-  document.getElementById("fileIcon").textContent = fileEmoji(f.name);
+  document.getElementById("fileSize").textContent = fmt(f.size);
+  document.getElementById("fileIcon").textContent = emoji(f.name);
   document.getElementById("renameInput").value = f.name;
-  dropInner.style.display = "none";
-  fileInfo.style.display = "flex";
-  renameRow.style.display = "block";
-  encRow.style.display    = "block";
-  updateSendBtn();
+  document.getElementById("dropInner").style.display = "none";
+  document.getElementById("fileInfo").style.display   = "flex";
+  document.getElementById("renameRow").style.display  = "block";
+  document.getElementById("encRow").style.display     = "block";
+  updateBtn();
 }
 
 function clearFile() {
   selectedFile = null;
   fileInput.value = "";
-  dropInner.style.display = "flex";
-  fileInfo.style.display  = "none";
-  renameRow.style.display = "none";
-  encRow.style.display    = "none";
-  updateSendBtn();
+  document.getElementById("dropInner").style.display = "flex";
+  document.getElementById("fileInfo").style.display   = "none";
+  document.getElementById("renameRow").style.display  = "none";
+  document.getElementById("encRow").style.display     = "none";
+  updateBtn();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Encryption toggle UI
-// ─────────────────────────────────────────────────────────────────────────────
-let encEnabled = true;
-const encToggle = document.getElementById("encToggle");
-const encTrack  = document.getElementById("encTrack");
-const encThumb  = document.getElementById("encThumb");
-const encLbl    = document.getElementById("encLabel");
+// ── Recipient ──────────────────────────────────────────────────────────────
+const searchInput = document.getElementById("recipientSearch");
+const dropdown    = document.getElementById("recipientDropdown");
+let searchTimer   = null;
 
-encToggle.addEventListener("change", () => {
-  encEnabled = encToggle.checked;
-  if (encEnabled) {
-    encTrack.style.background = "#7c3aed";
-    encThumb.style.transform  = "translateX(20px)";
-    encThumb.style.background = "white";
-    encLbl.textContent = "🔒 Extra versleuteling aan";
-  } else {
-    encTrack.style.background = "#3a006f";
-    encThumb.style.transform  = "translateX(0)";
-    encThumb.style.background = "#888";
-    encLbl.textContent = "🔓 Extra versleuteling uit (sneller)";
-  }
-});
-// Init visual
-encTrack.style.background = "#7c3aed";
-encThumb.style.transform  = "translateX(20px)";
-encThumb.style.background = "white";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Recipient search
-// ─────────────────────────────────────────────────────────────────────────────
-const recipientSearch   = document.getElementById("recipientSearch");
-const recipientDropdown = document.getElementById("recipientDropdown");
-const recipientChosen   = document.getElementById("recipientChosen");
-let searchTimer = null;
-
-recipientSearch.addEventListener("input", () => {
+searchInput.addEventListener("input", () => {
   clearTimeout(searchTimer);
-  const q = recipientSearch.value.trim();
-  if (!q) { recipientDropdown.innerHTML = ""; recipientDropdown.style.display = "none"; return; }
-  searchTimer = setTimeout(() => doSearch(q), 200);
+  const q = searchInput.value.trim();
+  if (!q) { dropdown.innerHTML = ""; dropdown.style.display = "none"; return; }
+  searchTimer = setTimeout(() => doSearch(q), 220);
 });
 
 async function doSearch(q) {
-  const res  = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`);
-  const list = await res.json();
-  if (!list.length) { recipientDropdown.innerHTML = "<div class='rdrop-empty'>Geen gebruikers gevonden</div>"; recipientDropdown.style.display = "block"; return; }
-  recipientDropdown.innerHTML = list.map(u =>
-    `<div class="rdrop-item" data-id="${u.id}" data-name="${u.username}">
-       <div class="rdrop-avatar">${u.username[0].toUpperCase()}</div>
-       <div>
-         <div class="rdrop-name">${u.username}</div>
-         ${u.location ? `<div class="rdrop-meta">📍 ${u.location}</div>` : ""}
-       </div>
-     </div>`
-  ).join("");
-  recipientDropdown.style.display = "block";
-  recipientDropdown.querySelectorAll(".rdrop-item").forEach(el => {
-    el.addEventListener("click", () => selectRecipient(el.dataset.id, el.dataset.name));
-  });
+  try {
+    const res  = await fetch("/api/users/search?q=" + encodeURIComponent(q));
+    const list = await res.json();
+    if (!list.length) {
+      dropdown.innerHTML = "<div class='rdrop-empty'>Geen gebruikers gevonden</div>";
+    } else {
+      dropdown.innerHTML = list.map(u =>
+        `<div class="rdrop-item" data-id="${u.id}" data-name="${u.username}">
+           <div class="rdrop-avatar">${u.username[0].toUpperCase()}</div>
+           <div><div class="rdrop-name">${u.username}</div>${u.location ? `<div class="rdrop-meta">📍 ${u.location}</div>` : ""}</div>
+         </div>`
+      ).join("");
+      dropdown.querySelectorAll(".rdrop-item").forEach(el =>
+        el.addEventListener("click", () => pick(el.dataset.id, el.dataset.name))
+      );
+    }
+    dropdown.style.display = "block";
+  } catch(e) { console.error(e); }
 }
 
-// Quick-friend buttons
-document.querySelectorAll(".quick-friend-btn").forEach(btn => {
-  btn.addEventListener("click", () => selectRecipient(btn.dataset.id, btn.dataset.name));
-});
+document.querySelectorAll(".quick-friend-btn").forEach(btn =>
+  btn.addEventListener("click", () => pick(btn.dataset.id, btn.dataset.name))
+);
 
-function selectRecipient(id, name) {
-  recipientId   = parseInt(id);
-  recipientName = name;
-  recipientDropdown.style.display = "none";
-  recipientSearch.style.display   = "none";
-  document.querySelector(".quick-friends") && (document.querySelector(".quick-friends").style.display = "none");
+function pick(id, name) {
+  recipientId = parseInt(id);
+  dropdown.style.display = "none";
+  searchInput.style.display = "none";
+  const qf = document.getElementById("quickFriends");
+  if (qf) qf.style.display = "none";
   document.getElementById("recipientCard").innerHTML =
     `<div class="rdrop-avatar" style="width:44px;height:44px;font-size:1.2rem;">${name[0].toUpperCase()}</div>
-     <div style="margin-left:12px;"><div style="font-weight:700;color:white;">${name}</div></div>`;
-  recipientChosen.style.display = "flex";
-  updateSendBtn();
+     <div style="margin-left:12px;font-weight:700;color:white;">${name}</div>`;
+  document.getElementById("recipientChosen").style.display = "flex";
+  updateBtn();
 }
 
 document.getElementById("clearRecipient").addEventListener("click", () => {
-  recipientId = null; recipientName = null;
-  recipientSearch.style.display = "";
-  recipientSearch.value = "";
-  document.querySelector(".quick-friends") && (document.querySelector(".quick-friends").style.display = "");
-  recipientChosen.style.display = "none";
-  updateSendBtn();
+  recipientId = null;
+  searchInput.style.display = "";
+  searchInput.value = "";
+  const qf = document.getElementById("quickFriends");
+  if (qf) qf.style.display = "";
+  document.getElementById("recipientChosen").style.display = "none";
+  updateBtn();
 });
 
-function updateSendBtn() {
+function updateBtn() {
   document.getElementById("sendBtn").disabled = !(selectedFile && recipientId);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// WebRTC – Sender side
-// ─────────────────────────────────────────────────────────────────────────────
-document.getElementById("sendBtn").addEventListener("click", startTransfer);
+// ── Encryption toggle ──────────────────────────────────────────────────────
+const encToggle = document.getElementById("encToggle");
+const encTrack  = document.querySelector("#encRow .toggle-track");
+const encThumb  = document.querySelector("#encRow .toggle-thumb");
+const encLabel  = document.getElementById("encLabel");
 
-async function startTransfer() {
+function syncToggle() {
+  const on = encToggle.checked;
+  encTrack.style.background = on ? "#7c3aed" : "#3a006f";
+  encThumb.style.transform  = on ? "translateX(20px)" : "translateX(0)";
+  encThumb.style.background = on ? "white" : "#888";
+  encLabel.textContent = on ? "🔒 Extra versleuteling aan" : "🔓 Extra versleuteling uit (sneller)";
+}
+encToggle.addEventListener("change", syncToggle);
+syncToggle();
+
+// ── Send ───────────────────────────────────────────────────────────────────
+document.getElementById("sendBtn").addEventListener("click", async () => {
   if (!selectedFile || !recipientId) return;
 
   document.getElementById("progressArea").style.display = "block";
   document.getElementById("sendBtn").disabled = true;
-  setStatus("Verbinding opzetten…");
+  status("Verbinding opzetten…");
 
   const fileName  = document.getElementById("renameInput").value.trim() || selectedFile.name;
-  const encrypted = encEnabled;
+  const encrypted = encToggle.checked;
 
-  peerConn = createPeerConn(recipientId, true);
-
-  // Create data channel BEFORE creating the offer
-  dataChannel = peerConn.createDataChannel("p2p-file", { ordered: true });
+  peerConn    = makePeer(recipientId);
+  dataChannel = peerConn.createDataChannel("file", { ordered: true });
   dataChannel.binaryType = "arraybuffer";
-  dataChannel.onopen  = () => { setStatus("Verbonden! Versturen…"); sendFile(fileName, encrypted); };
-  dataChannel.onerror = e  => setStatus("❌ Kanaal fout: " + (e.message || e));
+  dataChannel.onopen  = () => { status("Verbonden! Versturen…"); sendFile(fileName, encrypted); };
+  dataChannel.onerror = e  => status("❌ Fout: " + e);
 
-  // Create offer
   const offer = await peerConn.createOffer();
   await peerConn.setLocalDescription(offer);
-
-  // Wait for ICE gathering to complete so we send a complete SDP (trickle-free)
-  await waitForIce(peerConn);
+  await iceComplete(peerConn);
 
   socket.emit("transfer_offer", {
     to_user_id: recipientId,
-    offer:      peerConn.localDescription,   // now contains all candidates
+    offer:      peerConn.localDescription,
     file_meta:  { name: fileName, size: selectedFile.size, type: selectedFile.type, encrypted },
   });
-  setStatus("Wachten op ontvanger…");
-}
-
-function waitForIce(pc) {
-  return new Promise(resolve => {
-    if (pc.iceGatheringState === "complete") { resolve(); return; }
-    pc.addEventListener("icegatheringstatechange", function handler() {
-      if (pc.iceGatheringState === "complete") {
-        pc.removeEventListener("icegatheringstatechange", handler);
-        resolve();
-      }
-    });
-    // Fallback: resolve after 4s regardless
-    setTimeout(resolve, 4000);
-  });
-}
+  status("Wachten op ontvanger…");
+});
 
 async function sendFile(fileName, encrypted) {
-  const reader     = new FileReader();
-  let offset       = 0;
-  transferStart    = Date.now();
-  lastBytes        = 0;
-  lastTime         = Date.now();
-
-  // If extra encryption: derive AES key from a random 32-byte key, send key in metadata
+  lastBytes = 0; lastTime = Date.now();
   let aesKey = null;
+
   if (encrypted) {
-    const rawKey = crypto.getRandomValues(new Uint8Array(32));
-    aesKey = await crypto.subtle.importKey("raw", rawKey, {name: "AES-GCM"}, false, ["encrypt"]);
-    // Send key as first message (JSON)
-    dataChannel.send(JSON.stringify({type:"key", key: Array.from(rawKey)}));
+    const raw = crypto.getRandomValues(new Uint8Array(32));
+    aesKey = await crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, ["encrypt"]);
+    dataChannel.send(JSON.stringify({ type: "key", key: Array.from(raw) }));
   } else {
-    dataChannel.send(JSON.stringify({type:"key", key: null}));
+    dataChannel.send(JSON.stringify({ type: "key", key: null }));
   }
 
-  async function readSlice(o) {
-    const slice = selectedFile.slice(o, o + CHUNK);
-    const buf   = await slice.arrayBuffer();
-    let data    = buf;
+  let offset = 0;
+  async function next() {
+    if (offset >= selectedFile.size) {
+      dataChannel.send(JSON.stringify({ type: "done", name: fileName }));
+      status("✅ Verstuurd!");
+      socket.emit("transfer_complete", { to_user_id: recipientId, file_name: fileName });
+      return;
+    }
+    const buf = await selectedFile.slice(offset, offset + CHUNK).arrayBuffer();
+    let data  = buf;
     if (encrypted && aesKey) {
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-      const enc = await crypto.subtle.encrypt({name:"AES-GCM", iv}, aesKey, buf);
-      // Prepend 12-byte IV
+      const iv  = crypto.getRandomValues(new Uint8Array(12));
+      const enc = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, aesKey, buf);
       const out = new Uint8Array(12 + enc.byteLength);
-      out.set(iv, 0);
-      out.set(new Uint8Array(enc), 12);
+      out.set(iv); out.set(new Uint8Array(enc), 12);
       data = out.buffer;
     }
     dataChannel.send(data);
     offset += CHUNK;
-    updateSendProgress(offset);
-    if (offset < selectedFile.size) {
-      // Small yield to avoid blocking UI
-      setTimeout(() => readSlice(offset), 0);
-    } else {
-      // Signal end
-      dataChannel.send(JSON.stringify({type:"done", name: fileName}));
-      setStatus("✅ Bestand verstuurd!");
-      socket.emit("transfer_complete", { to_user_id: recipientId, file_name: fileName });
-    }
+    updateSendProg(offset);
+    setTimeout(next, 0);
   }
-  readSlice(0);
+  next();
 }
 
-function updateSendProgress(sent) {
-  const total = selectedFile.size;
-  const pct   = Math.min(100, Math.round((sent / total) * 100));
+function updateSendProg(sent) {
+  const pct = Math.min(100, Math.round(sent / selectedFile.size * 100));
   document.getElementById("progressFill").style.width = pct + "%";
   document.getElementById("progressPct").textContent  = pct + "%";
-
-  const now     = Date.now();
-  const elapsed = (now - lastTime) / 1000;
-  if (elapsed > 0.5) {
-    const bps   = (sent - lastBytes) / elapsed;
-    const remaining = (total - sent) / bps;
-    document.getElementById("progressSpeed").textContent = fmtSpeed(bps);
-    document.getElementById("progressEta").textContent   = sent < total ? "ETA: " + fmtTime(remaining) : "";
+  const now = Date.now(), el = (now - lastTime) / 1000;
+  if (el > 0.5) {
+    const bps = (sent - lastBytes) / el;
+    document.getElementById("progressSpeed").textContent = fmt(bps) + "/s";
+    document.getElementById("progressEta").textContent   = sent < selectedFile.size ? "ETA: " + fmtT((selectedFile.size - sent) / bps) : "";
     lastBytes = sent; lastTime = now;
   }
 }
 
-function cleanupSender() {
-  if (peerConn) { peerConn.close(); peerConn = null; }
-  dataChannel = null;
-}
+function cleanup() { if (peerConn) { peerConn.close(); peerConn = null; } dataChannel = null; }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// WebRTC – Receiver side
-// ─────────────────────────────────────────────────────────────────────────────
-document.getElementById("acceptBtn").addEventListener("click", acceptTransfer);
-document.getElementById("declineBtn").addEventListener("click", declineTransfer);
-
-async function acceptTransfer() {
+// ── Accept / Decline ───────────────────────────────────────────────────────
+document.getElementById("acceptBtn").addEventListener("click", async () => {
   document.getElementById("incomingModal").style.display = "none";
   document.getElementById("receiveModal").style.display  = "flex";
   document.getElementById("receiveDesc").textContent =
-    `Ontvangen: "${incomingMeta.name}" (${fmtSize(incomingMeta.size)})`;
+    `Ontvangen: "${incomingMeta.name}" (${fmt(incomingMeta.size)})`;
 
-  peerConn = createPeerConn(incomingMeta._from_id, false);
+  peerConn = makePeer(incomingMeta._from_id);
+  receiveBuffer = []; receiveSize = 0; lastTime = Date.now(); lastBytes = 0;
 
   peerConn.ondatachannel = ({ channel }) => {
     channel.binaryType = "arraybuffer";
-    receiveBuffer = []; receiveSize = 0; transferStart = Date.now(); lastTime = Date.now(); lastBytes = 0;
-    let aesKey = null;
-    let keyReceived = false;
+    let aesKey = null, keyDone = false;
 
     channel.onmessage = async ({ data }) => {
-      // First message is the key JSON
-      if (!keyReceived) {
-        const meta = JSON.parse(data);
-        keyReceived = true;
-        if (meta.key) {
-          const raw = new Uint8Array(meta.key);
-          aesKey = await crypto.subtle.importKey("raw", raw, {name:"AES-GCM"}, false, ["decrypt"]);
+      if (!keyDone) {
+        keyDone = true;
+        const m = JSON.parse(data);
+        if (m.key) {
+          aesKey = await crypto.subtle.importKey("raw", new Uint8Array(m.key), { name: "AES-GCM" }, false, ["decrypt"]);
         }
         return;
       }
-      // Check for done signal
       if (typeof data === "string") {
-        const msg = JSON.parse(data);
-        if (msg.type === "done") {
-          assembleFile(aesKey, msg.name);
-        }
+        const m = JSON.parse(data);
+        if (m.type === "done") save(aesKey, m.name);
         return;
       }
       receiveBuffer.push(data);
       receiveSize += data.byteLength;
-      updateReceiveProgress();
+      updateRecvProg();
     };
   };
 
   await peerConn.setRemoteDescription(new RTCSessionDescription(incomingMeta._offer));
   const answer = await peerConn.createAnswer();
   await peerConn.setLocalDescription(answer);
+  await iceComplete(peerConn);
+  socket.emit("transfer_answer", { to_user_id: incomingMeta._from_id, answer: peerConn.localDescription });
+});
 
-  // Wait for ICE gathering before sending complete answer SDP
-  await waitForIce(peerConn);
+document.getElementById("declineBtn").addEventListener("click", () => {
+  document.getElementById("incomingModal").style.display = "none";
+  socket.emit("transfer_decline", { to_user_id: incomingMeta._from_id });
+});
 
-  socket.emit("transfer_answer", {
-    to_user_id: incomingMeta._from_id,
-    answer: peerConn.localDescription,
-  });
-}
-
-async function assembleFile(aesKey, fileName) {
-  let chunks = receiveBuffer;
-  let blobs;
-  if (aesKey) {
-    // Decrypt each chunk
-    blobs = await Promise.all(chunks.map(async buf => {
-      const iv  = buf.slice(0, 12);
-      const enc = buf.slice(12);
-      const dec = await crypto.subtle.decrypt({name:"AES-GCM", iv: new Uint8Array(iv)}, aesKey, enc);
-      return dec;
-    }));
-  } else {
-    blobs = chunks;
-  }
+async function save(aesKey, fileName) {
+  const blobs = aesKey
+    ? await Promise.all(receiveBuffer.map(async buf => {
+        const dec = await crypto.subtle.decrypt({ name: "AES-GCM", iv: new Uint8Array(buf.slice(0,12)) }, aesKey, buf.slice(12));
+        return dec;
+      }))
+    : receiveBuffer;
   const blob = new Blob(blobs, { type: incomingMeta.type || "application/octet-stream" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  a.download = fileName || incomingMeta.name;
+  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: fileName });
   a.click();
-  URL.revokeObjectURL(url);
-  document.getElementById("receiveDesc").textContent = `✅ "${fileName}" ontvangen!`;
+  URL.revokeObjectURL(a.href);
+  document.getElementById("receiveDesc").textContent = `✅ "${fileName}" opgeslagen!`;
+  document.getElementById("receiveClose").style.display = "block";
 }
 
-function updateReceiveProgress() {
-  const total = incomingMeta.size;
-  const pct   = Math.min(100, Math.round((receiveSize / total) * 100));
+function updateRecvProg() {
+  const pct = Math.min(100, Math.round(receiveSize / incomingMeta.size * 100));
   document.getElementById("receiveProgressFill").style.width = pct + "%";
   document.getElementById("receivePct").textContent = pct + "%";
-
-  const now     = Date.now();
-  const elapsed = (now - lastTime) / 1000;
-  if (elapsed > 0.5) {
-    const bps = (receiveSize - lastBytes) / elapsed;
-    document.getElementById("receiveSpeed").textContent = fmtSpeed(bps);
+  const now = Date.now(), el = (now - lastTime) / 1000;
+  if (el > 0.5) {
+    document.getElementById("receiveSpeed").textContent = fmt((receiveSize - lastBytes) / el) + "/s";
     lastBytes = receiveSize; lastTime = now;
   }
 }
 
-function declineTransfer() {
-  document.getElementById("incomingModal").style.display = "none";
-  socket.emit("transfer_decline", { to_user_id: incomingMeta._from_id });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// WebRTC helpers
-// ─────────────────────────────────────────────────────────────────────────────
-function createPeerConn(otherId, isSender) {
-  const config = {
-    iceServers: [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun1.l.google.com:19302" },
-    ]
-  };
-  const pc = new RTCPeerConnection(config);
-
+// ── Helpers ────────────────────────────────────────────────────────────────
+function makePeer(otherId) {
+  const pc = new RTCPeerConnection({ iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+  ]});
   pc.onicecandidate = ({ candidate }) => {
-    if (candidate) {
-      socket.emit("ice_candidate", { to_user_id: otherId, candidate });
-    }
+    if (candidate) socket.emit("ice_candidate", { to_user_id: otherId, candidate });
   };
-
   pc.onconnectionstatechange = () => {
-    if (pc.connectionState === "failed") {
-      setStatus("❌ Verbinding mislukt. Probeer opnieuw.");
-    }
+    if (pc.connectionState === "failed") status("❌ Verbinding mislukt.");
   };
-
   return pc;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Utility
-// ─────────────────────────────────────────────────────────────────────────────
-function setStatus(msg) {
-  document.getElementById("progressStatus").textContent = msg;
+function iceComplete(pc) {
+  return new Promise(resolve => {
+    if (pc.iceGatheringState === "complete") return resolve();
+    const check = () => { if (pc.iceGatheringState === "complete") { pc.removeEventListener("icegatheringstatechange", check); resolve(); }};
+    pc.addEventListener("icegatheringstatechange", check);
+    setTimeout(resolve, 4000); // fallback
+  });
 }
-function fmtSize(bytes) {
-  if (bytes < 1024) return bytes + " B";
-  if (bytes < 1024**2) return (bytes/1024).toFixed(1) + " KB";
-  if (bytes < 1024**3) return (bytes/1024**2).toFixed(1) + " MB";
-  return (bytes/1024**3).toFixed(2) + " GB";
+
+function status(msg) { document.getElementById("progressStatus").textContent = msg; }
+
+function fmt(b) {
+  if (b < 1024) return b + " B";
+  if (b < 1048576) return (b/1024).toFixed(1) + " KB";
+  if (b < 1073741824) return (b/1048576).toFixed(1) + " MB";
+  return (b/1073741824).toFixed(2) + " GB";
 }
-function fmtSpeed(bps) {
-  return fmtSize(bps) + "/s";
+function fmtT(s) { return s < 60 ? Math.round(s) + "s" : Math.floor(s/60) + "m " + Math.round(s%60) + "s"; }
+function emoji(n) {
+  const e = {pdf:"📄",doc:"📝",docx:"📝",xls:"📊",xlsx:"📊",jpg:"🖼",jpeg:"🖼",png:"🖼",gif:"🖼",mp4:"🎬",mp3:"🎵",zip:"📦",rar:"📦",txt:"📃",json:"📃"};
+  return e[n.split(".").pop().toLowerCase()] || "📁";
 }
-function fmtTime(s) {
-  if (s < 60) return Math.round(s) + "s";
-  return Math.floor(s/60) + "m " + Math.round(s%60) + "s";
-}
-function fileEmoji(name) {
-  const ext = name.split(".").pop().toLowerCase();
-  const map = {
-    pdf:"📄", doc:"📝", docx:"📝", xls:"📊", xlsx:"📊", ppt:"📽", pptx:"📽",
-    jpg:"🖼", jpeg:"🖼", png:"🖼", gif:"🖼", webp:"🖼", svg:"🖼",
-    mp4:"🎬", mov:"🎬", avi:"🎬", mkv:"🎬",
-    mp3:"🎵", wav:"🎵", flac:"🎵",
-    zip:"📦", rar:"📦", "7z":"📦", tar:"📦",
-    exe:"⚙", dmg:"⚙", apk:"⚙",
-    txt:"📃", md:"📃", json:"📃", csv:"📃",
-  };
-  return map[ext] || "📁";
-}
+
+})(); // end IIFE
 </script>
 {% endblock %}
